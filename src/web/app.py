@@ -570,53 +570,6 @@ def delete_document(doc_id):
         logger.error(f"Ошибка удаления документа: {e}")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/graph', methods=['GET'])
-def get_graph():
-    """Получить граф связей для визуализации"""
-    try:
-        # Получить все связи между статьями
-        query = """
-        PREFIX law: <http://law.ontology.ru/#>
-        SELECT ?from ?to ?type WHERE {
-            {
-                ?from law:references ?to .
-                BIND("reference" as ?type)
-            } UNION {
-                ?from law:usesTerm ?to .
-                BIND("term" as ?type)
-            } UNION {
-                ?from law:definesTerm ?to .
-                BIND("definition" as ?type)
-            }
-        }
-        """
-        results = ontology_manager.query(query)
-        
-        # Форматирование для визуализации
-        nodes = set()
-        edges = []
-        
-        for row in results:
-            from_node = str(row.get('from', ''))
-            to_node = str(row.get('to', ''))
-            edge_type = str(row.get('type', ''))
-            
-            nodes.add(from_node)
-            nodes.add(to_node)
-            edges.append({
-                'from': from_node,
-                'to': to_node,
-                'type': edge_type
-            })
-        
-        return jsonify({
-            'nodes': [{'id': node} for node in nodes],
-            'edges': edges
-        })
-    except Exception as e:
-        logger.error(f"Ошибка получения графа: {e}")
-        return jsonify({'error': str(e)}), 500
-
 if __name__ == '__main__':
     app.run(
         host=CONFIG['web']['host'],
