@@ -1,0 +1,37 @@
+# Конфигурация приложения
+
+graphdb:
+  host: localhost
+  port: 7200
+  repository: law_ontology
+  username: admin
+  password: root
+
+nlp:
+  language: ru
+  spacy_model: ru_core_news_sm
+  enable_lemmatization: true
+  enable_pos_tagging: true
+  # spaCy падает на очень длинных текстах (E088). Мы повышаем жесткий лимит,
+  # но для тяжелых операций (POS/термины) всё равно используем безопасное ограничение/сэмплинг.
+  spacy_max_length: 5000000
+  # Максимальная длина текста, который мы прогоняем через spaCy-пайплайн.
+  # Остальное обрабатываем регексами/порциями, чтобы не упасть по памяти.
+  spacy_safe_max_chars: 400000
+  # Ограничение для подсчёта ключевых терминов (чтобы не считать по всему PDF на миллионы символов)
+  key_terms_max_chars: 1500000
+
+ontology:
+  file: ontology/legal_ontology.owl
+  namespace: http://law.ontology.ru/#
+
+data:
+  input_dir: data/raw
+  output_dir: data/processed
+  supported_formats: [xml, html, pdf, txt]
+
+web:
+  host: localhost
+  port: 5000
+  debug: true
+

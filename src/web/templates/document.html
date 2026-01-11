@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Просмотр документа</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --border-color: #30363d;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+            --accent: #58a6ff;
+            --accent-hover: #79c0ff;
+            --success: #3fb950;
+            --error: #f85149;
+            --warning: #d29922;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 24px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        h1 {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .back-button {
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        
+        .back-button:hover {
+            background: var(--bg-primary);
+            border-color: var(--accent);
+        }
+        
+        .document-layout {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 24px;
+        }
+        
+        @media (max-width: 1024px) {
+            .document-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .document-viewer {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            overflow: hidden;
+            min-height: 800px;
+        }
+        
+        .document-viewer iframe {
+            width: 100%;
+            height: 100%;
+            min-height: 800px;
+            border: none;
+        }
+        
+        .document-viewer .text-viewer {
+            padding: 24px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            line-height: 1.8;
+        }
+        
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .sidebar-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 16px;
+        }
+        
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .entity-list, .term-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .entity-item, .term-item {
+            padding: 8px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        
+        .entity-item strong {
+            color: var(--accent);
+            display: block;
+            margin-bottom: 4px;
+        }
+        
+        .term-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .term-text {
+            color: var(--text-primary);
+        }
+        
+        .term-freq {
+            color: var(--text-muted);
+            font-size: 11px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-secondary);
+        }
+        
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+        
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+        
+        .error {
+            background: rgba(248, 81, 73, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-top: 16px;
+            font-size: 14px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 24px;
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-right: 6px;
+            margin-bottom: 6px;
+        }
+        
+        .document-info {
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .document-info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .document-info-label {
+            color: var(--text-secondary);
+        }
+        
+        .document-info-value {
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 id="documentTitle">Загрузка документа...</h1>
+            <a href="/" class="back-button">← Назад к списку</a>
+        </header>
+        
+        <div class="document-layout">
+            <div class="document-viewer" id="documentViewer">
+                <div class="loading">Загрузка документа</div>
+            </div>
+            
+            <div class="sidebar">
+                <div class="sidebar-section">
+                    <div class="section-title">📋 Информация</div>
+                    <div class="document-info" id="documentInfo">
+                        <div class="loading">Загрузка...</div>
+                    </div>
+                </div>
+                
+                <div class="sidebar-section">
+                    <div class="section-title">🔖 Сущности</div>
+                    <div id="entitiesContent">
+                        <div class="loading">Загрузка...</div>
+                    </div>
+                </div>
+                
+                <div class="sidebar-section">
+                    <div class="section-title">📝 Ключевые термины</div>
+                    <div id="termsContent">
+                        <div class="loading">Загрузка...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const docId = {{ doc_id }};
+        
+        async function loadDocument() {
+            try {
+                const response = await fetch(`/api/document/${docId}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    document.getElementById('documentTitle').textContent = 'Ошибка';
+                    document.getElementById('documentViewer').innerHTML = `<div class="error">${data.error}</div>`;
+                    return;
+                }
+                
+                // Установка заголовка
+                document.getElementById('documentTitle').textContent = data.title || data.filename;
+                
+                // Загрузка информации о документе
+                const uploadDate = new Date(data.uploaded_at);
+                const formattedDate = uploadDate.toLocaleString('ru-RU', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                const fileSize = data.file_size ? formatFileSize(data.file_size) : 'N/A';
+                
+                document.getElementById('documentInfo').innerHTML = `
+                    <div class="document-info-item">
+                        <span class="document-info-label">Файл:</span>
+                        <span class="document-info-value">${data.filename}</span>
+                    </div>
+                    <div class="document-info-item">
+                        <span class="document-info-label">Размер:</span>
+                        <span class="document-info-value">${fileSize}</span>
+                    </div>
+                    <div class="document-info-item">
+                        <span class="document-info-label">Загружен:</span>
+                        <span class="document-info-value">${formattedDate}</span>
+                    </div>
+                    <div class="document-info-item">
+                        <span class="document-info-label">Сущностей:</span>
+                        <span class="document-info-value">${data.entities_count || 0}</span>
+                    </div>
+                    <div class="document-info-item">
+                        <span class="document-info-label">Терминов:</span>
+                        <span class="document-info-value">${data.terms_count || 0}</span>
+                    </div>
+                `;
+                
+                // Отображение документа
+                const fileExt = data.filename.split('.').pop().toLowerCase();
+                const fileUrl = `/api/document/${docId}/file`;
+                const urlParams = new URLSearchParams(window.location.search);
+                const targetArticle = urlParams.get('article');
+
+                // Если пришли по клику из поиска — показываем "фокус статьи" сверху
+                if (targetArticle) {
+                    try {
+                        const aResp = await fetch(`/api/document/${docId}/article/${encodeURIComponent(targetArticle)}`);
+                        const aData = await aResp.json();
+                        if (!aData.error && aData.article) {
+                            const a = aData.article;
+                            const aTitle = a.title || '';
+                            const header = aTitle ? `${escapeHtml(aTitle)}` : `Статья ${escapeHtml(targetArticle)}`;
+                            const text = a.text ? escapeHtml(a.text) : '<span style="color: var(--text-secondary);">Текст не доступен</span>';
+                            const pageInfo = a.page ? `<span class="badge">стр. ${escapeHtml(String(a.page))}</span>` : '';
+
+                            // Вставляем блок над viewer
+                            document.getElementById('documentViewer').innerHTML = `
+                                <div style="padding: 16px; border-bottom: 1px solid var(--border-color); background: var(--bg-tertiary);">
+                                    <div style="font-weight: 600; color: var(--accent); margin-bottom: 8px;">
+                                        ${header} ${pageInfo}
+                                    </div>
+                                    <div style="white-space: pre-wrap; line-height: 1.6; color: var(--text-primary);">
+                                        ${text}
+                                    </div>
+                                    <div style="margin-top: 12px; color: var(--text-muted); font-size: 12px;">
+                                        Открыт фрагмент статьи из онтологии. Ниже — исходный файл документа.
+                                    </div>
+                                </div>
+                                <div id="fileViewer"><div class="loading">Загрузка файла</div></div>
+                            `;
+
+                            // Запоминаем страницу статьи (если PDF — используем ниже в iframe #page)
+                            window.__targetPdfPage = a.page ? String(a.page) : null;
+                        }
+                    } catch (e) {
+                        // Если не получилось — просто продолжаем показывать файл
+                    }
+                }
+
+                const viewerRoot = document.getElementById('fileViewer') || document.getElementById('documentViewer');
+                
+                if (fileExt === 'pdf') {
+                    // PDF через iframe
+                    const pageHash = (typeof window.__targetPdfPage === 'string' && window.__targetPdfPage)
+                        ? `#page=${encodeURIComponent(window.__targetPdfPage)}`
+                        : '';
+                    viewerRoot.innerHTML = `
+                        <iframe src="${fileUrl}${pageHash}" type="application/pdf"></iframe>
+                    `;
+                } else if (['txt', 'xml', 'html'].includes(fileExt)) {
+                    // Текстовые файлы через fetch
+                    fetch(fileUrl)
+                        .then(response => response.text())
+                        .then(text => {
+                            // Если задан targetArticle — попробуем подсветить и прокрутить к "Статья N"
+                            const highlight = (raw) => {
+                                if (!targetArticle) return escapeHtml(raw);
+                                const safe = escapeHtml(raw);
+                                const re = new RegExp(`(Статья\\s+${targetArticle.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')})`, 'i');
+                                return safe.replace(re, '<mark style="background: rgba(88,166,255,0.25); color: inherit; padding: 0 2px;">$1</mark>');
+                            };
+
+                            viewerRoot.innerHTML = `
+                                <div class="text-viewer">${escapeHtml(text)}</div>
+                            `;
+                            if (targetArticle) {
+                                // повторно вставим с подсветкой (безопасно, т.к. escapeHtml)
+                                const tv = viewerRoot.querySelector('.text-viewer');
+                                if (tv) tv.innerHTML = highlight(text);
+                                const mark = viewerRoot.querySelector('mark');
+                                if (mark) mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }
+                        })
+                        .catch(error => {
+                            viewerRoot.innerHTML = `
+                                <div class="error">Ошибка загрузки файла: ${error.message}</div>
+                            `;
+                        });
+                } else {
+                    // Для других форматов - ссылка на скачивание
+                    viewerRoot.innerHTML = `
+                        <div style="padding: 48px; text-align: center;">
+                            <p style="margin-bottom: 16px; color: var(--text-secondary);">
+                                Просмотр этого формата файла не поддерживается в браузере
+                            </p>
+                            <a href="${fileUrl}" download="${data.filename}" 
+                               style="display: inline-block; padding: 8px 16px; background: var(--accent); 
+                                      color: white; border-radius: 6px; text-decoration: none;">
+                                Скачать файл
+                            </a>
+                        </div>
+                    `;
+                }
+                
+                // Отображение сущностей
+                const entities = data.entities || {};
+                let entitiesHtml = '';
+                
+                if (entities.laws && entities.laws.length > 0) {
+                    entitiesHtml += '<div style="margin-bottom: 16px;"><strong style="color: var(--accent); display: block; margin-bottom: 8px;">Законы:</strong>';
+                    entities.laws.forEach(law => {
+                        entitiesHtml += `<div class="badge">${escapeHtml(law)}</div>`;
+                    });
+                    entitiesHtml += '</div>';
+                }
+                
+                if (entities.articles && entities.articles.length > 0) {
+                    entitiesHtml += '<div style="margin-bottom: 16px;"><strong style="color: var(--accent); display: block; margin-bottom: 8px;">Статьи:</strong>';
+                    entities.articles.forEach(article => {
+                        entitiesHtml += `<div class="badge">${escapeHtml(article)}</div>`;
+                    });
+                    entitiesHtml += '</div>';
+                }
+                
+                if (entities.dates && entities.dates.length > 0) {
+                    entitiesHtml += '<div style="margin-bottom: 16px;"><strong style="color: var(--accent); display: block; margin-bottom: 8px;">Даты:</strong>';
+                    entities.dates.forEach(date => {
+                        entitiesHtml += `<div class="badge">${escapeHtml(date)}</div>`;
+                    });
+                    entitiesHtml += '</div>';
+                }
+                
+                if (entitiesHtml) {
+                    document.getElementById('entitiesContent').innerHTML = entitiesHtml;
+                } else {
+                    document.getElementById('entitiesContent').innerHTML = `
+                        <div class="empty-state">Сущности не найдены</div>
+                    `;
+                }
+                
+                // Отображение терминов
+                const terms = data.terms || [];
+                if (terms.length > 0) {
+                    let termsHtml = '<div class="term-list">';
+                    terms.forEach(term => {
+                        termsHtml += `
+                            <div class="term-item">
+                                <span class="term-text">${escapeHtml(term.term || term)}</span>
+                                ${term.frequency ? `<span class="term-freq">${term.frequency}</span>` : ''}
+                            </div>
+                        `;
+                    });
+                    termsHtml += '</div>';
+                    document.getElementById('termsContent').innerHTML = termsHtml;
+                } else {
+                    document.getElementById('termsContent').innerHTML = `
+                        <div class="empty-state">Термины не найдены</div>
+                    `;
+                }
+                
+            } catch (error) {
+                document.getElementById('documentTitle').textContent = 'Ошибка';
+                document.getElementById('documentViewer').innerHTML = `
+                    <div class="error">Ошибка загрузки документа: ${error.message}</div>
+                `;
+            }
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Загрузка документа при загрузке страницы
+        loadDocument();
+    </script>
+</body>
+</html>
+

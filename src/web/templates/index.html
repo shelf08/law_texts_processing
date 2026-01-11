@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Навигация по правовым актам</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --border-color: #30363d;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+            --accent: #58a6ff;
+            --accent-hover: #79c0ff;
+            --success: #3fb950;
+            --error: #f85149;
+            --warning: #d29922;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+        
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 24px;
+            margin-bottom: 32px;
+        }
+        
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+        
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        .section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .search-box {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        
+        input[type="text"] {
+            flex: 1;
+            padding: 8px 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+        }
+        
+        input[type="text"]::placeholder {
+            color: var(--text-muted);
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        .file-label {
+            display: inline-block;
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        
+        .file-label:hover {
+            background: var(--bg-primary);
+        }
+        
+        .file-name {
+            margin-left: 8px;
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+        
+        button {
+            padding: 8px 16px;
+            background: var(--accent);
+            color: #fff;
+            border: 1px solid var(--accent);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: inherit;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        
+        button:hover {
+            background: var(--accent-hover);
+            border-color: var(--accent-hover);
+        }
+        
+        button:active {
+            opacity: 0.8;
+        }
+        
+        button.secondary {
+            background: var(--bg-tertiary);
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+        
+        button.secondary:hover {
+            background: var(--bg-primary);
+            border-color: var(--accent);
+        }
+        
+        button.danger {
+            background: rgba(248, 81, 73, 0.1);
+            border-color: var(--error);
+            color: var(--error);
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+        
+        button.danger:hover {
+            background: rgba(248, 81, 73, 0.2);
+            border-color: var(--error);
+        }
+        
+        .upload-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .results {
+            margin-top: 24px;
+        }
+        
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .results-count {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+        
+        .result-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: border-color 0.2s;
+        }
+        
+        .result-item:hover {
+            border-color: var(--accent);
+        }
+        
+        .result-item h3 {
+            color: var(--accent);
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        
+        .result-item .article-number {
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .page-badge {
+            flex: none;
+            font-size: 12px;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+            padding: 2px 8px;
+            border-radius: 999px;
+            white-space: nowrap;
+        }
+        
+        .result-item p {
+            color: var(--text-primary);
+            line-height: 1.6;
+            margin-top: 8px;
+        }
+        
+        .result-item .meta {
+            display: flex;
+            gap: 16px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-secondary);
+        }
+        
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+        
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+        
+        .error {
+            background: rgba(248, 81, 73, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-top: 16px;
+            font-size: 14px;
+        }
+        
+        .success {
+            background: rgba(63, 185, 80, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-top: 16px;
+            font-size: 14px;
+        }
+        
+        .graph-container {
+            margin-top: 24px;
+            min-height: 400px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-secondary);
+            padding: 24px;
+            position: relative;
+        }
+        
+        .graph-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-secondary);
+        }
+
+        .graph-toolbar {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+        }
+
+        .graph-toolbar .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 999px;
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            font-size: 12px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .graph-toolbar input[type="text"] {
+            height: 32px;
+            padding: 6px 10px;
+            font-size: 13px;
+        }
+
+        .graph-toolbar button {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+
+        .graph-canvas-wrap {
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-primary);
+            overflow: hidden;
+        }
+
+        #graphCanvas {
+            display: block;
+            width: 100%;
+            height: 520px;
+            cursor: grab;
+        }
+
+        #graphCanvas:active {
+            cursor: grabbing;
+        }
+
+        .graph-tooltip {
+            position: absolute;
+            pointer-events: none;
+            z-index: 10;
+            max-width: 520px;
+            background: rgba(13, 17, 23, 0.96);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px 12px;
+            color: var(--text-primary);
+            font-size: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+            display: none;
+        }
+
+        .graph-legend {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 999px;
+            background: var(--bg-tertiary);
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex: none;
+        }
+
+        .legend-line {
+            width: 18px;
+            height: 2px;
+            border-radius: 2px;
+            flex: none;
+        }
+
+        .graph-selection {
+            margin-top: 10px;
+            padding: 10px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+        
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        
+        .badge.success {
+            background: rgba(63, 185, 80, 0.1);
+            border-color: var(--success);
+            color: var(--success);
+        }
+        
+        .badge.error {
+            background: rgba(248, 81, 73, 0.1);
+            border-color: var(--error);
+            color: var(--error);
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+            
+            .search-box {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Навигация по правовым актам</h1>
+            <p class="subtitle">Обработка и систематизация юридических текстов с помощью онтологий</p>
+        </header>
+        
+        <div class="section">
+            <div class="section-title">🔍 Поиск</div>
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Введите термин или ключевое слово...">
+                <button onclick="performSearch()">Поиск</button>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">📄 Загрузка документа</div>
+            <div class="upload-controls">
+                <label for="fileInput" class="file-label">
+                    Выбрать файл
+                </label>
+                <span id="fileName" class="file-name"></span>
+                <button onclick="uploadDocument()" class="secondary">Загрузить и обработать</button>
+            </div>
+            <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+                Поддерживаемые форматы: XML, HTML, PDF, TXT
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">📚 История загрузок</div>
+            <div id="historyContent">
+                <div class="loading">Загрузка истории...</div>
+            </div>
+        </div>
+        
+        <div id="results" class="results"></div>
+        
+        <div id="graph" class="graph-container" style="display: none;">
+            <div class="section-title">🔗 Граф связей</div>
+            <div id="graphContent"></div>
+        </div>
+    </div>
+    
+    <input type="file" id="fileInput" accept=".xml,.html,.pdf,.txt">
+
+    <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+    <script>
+        // Обновление имени файла
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const fileName = e.target.files[0]?.name || '';
+            document.getElementById('fileName').textContent = fileName;
+        });
+
+        // -----------------------
+        // Граф связей (D3.js + canvas)
+        // -----------------------
+        let __graphVis = null; // { simulation, cleanup }
+
+        function shortNodeLabel(id) {
+            if (!id) return '';
+            const s = String(id);
+            if (s.includes('#')) return s.split('#').pop();
+            const parts = s.split('/');
+            return parts[parts.length - 1] || s;
+        }
+
+        function nodeKind(label) {
+            const l = (label || '').toLowerCase();
+            if (l.startsWith('term_') || l.includes('#term_')) return 'term';
+            if (l.includes('_article_') || l.includes('#') && l.includes('article')) return 'article';
+            return 'other';
+        }
+
+        function destroyGraphVis() {
+            try {
+                if (__graphVis?.simulation) __graphVis.simulation.stop();
+                if (__graphVis?.cleanup) __graphVis.cleanup();
+            } catch (e) {}
+            __graphVis = null;
+        }
+
+        function initGraphD3(data) {
+            destroyGraphVis();
+
+            if (!window.d3) {
+                const graphContent = document.getElementById('graphContent');
+                graphContent.innerHTML += `
+                    <div class="error" style="margin-top: 12px;">
+                        Не удалось загрузить D3.js. Проверьте доступ к CDN (jsDelivr).
+                    </div>
+                `;
+                return;
+            }
+
+            const d3 = window.d3;
+            const canvas = document.getElementById('graphCanvas');
+            const tooltip = document.getElementById('graphTooltip');
+            const selectionInfo = document.getElementById('graphSelection');
+
+            const wrap = document.getElementById('graphCanvasWrap');
+            const wrapRect = wrap.getBoundingClientRect();
+            const width = Math.max(600, Math.floor(wrapRect.width));
+            const height = 520;
+
+            // HiDPI
+            const ratio = window.devicePixelRatio || 1;
+            canvas.width = Math.floor(width * ratio);
+            canvas.height = Math.floor(height * ratio);
+            canvas.style.width = `${width}px`;
+            canvas.style.height = `${height}px`;
+
+            const ctx = canvas.getContext('2d');
+            ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+            // Copy so D3 can mutate x/y
+            const nodes = (data.nodes || []).map(n => ({ id: n.id }));
+            const edgesAll = (data.edges || []).map(e => ({ from: e.from, to: e.to, type: e.type || 'term' }));
+
+            // UI state
+            let showReference = true;
+            let showTerm = true;
+            let showDefinition = true;
+            let hovered = null;
+            let selected = null;
+            let isDragging = false;
+            let dragNode = null;
+            let transform = d3.zoomIdentity;
+            let quadtree = null;
+            let neighbors = new Map(); // id -> Set(ids)
+
+            const typeColor = {
+                reference: '#d29922',  // warning
+                term: '#58a6ff',       // accent
+                definition: '#3fb950'  // success
+            };
+
+            function buildNeighbors(visibleEdges) {
+                neighbors = new Map();
+                for (const e of visibleEdges) {
+                    const a = e.source?.id || e.from;
+                    const b = e.target?.id || e.to;
+                    if (!a || !b) continue;
+                    if (!neighbors.has(a)) neighbors.set(a, new Set());
+                    if (!neighbors.has(b)) neighbors.set(b, new Set());
+                    neighbors.get(a).add(b);
+                    neighbors.get(b).add(a);
+                }
+            }
+
+            function edgeVisible(e) {
+                if (e.type === 'reference') return showReference;
+                if (e.type === 'definition') return showDefinition;
+                return showTerm;
+            }
+
+            let visibleEdges = edgesAll.filter(edgeVisible);
+
+            // Forces
+            const linkForce = d3.forceLink(visibleEdges)
+                .id(d => d.id)
+                .distance(e => (e.type === 'reference' ? 90 : 55))
+                .strength(0.08);
+
+            const simulation = d3.forceSimulation(nodes)
+                .force('link', linkForce)
+                .force('charge', d3.forceManyBody().strength(-32))
+                .force('center', d3.forceCenter(width / 2, height / 2))
+                .force('collide', d3.forceCollide(8))
+                .velocityDecay(0.45);
+
+            function screenToWorld(clientX, clientY) {
+                const rect = canvas.getBoundingClientRect();
+                const sx = clientX - rect.left;
+                const sy = clientY - rect.top;
+                const x = (sx - transform.x) / transform.k;
+                const y = (sy - transform.y) / transform.k;
+                return { x, y, sx, sy };
+            }
+
+            function setTooltip(show, x, y, html) {
+                if (!tooltip) return;
+                if (!show) {
+                    tooltip.style.display = 'none';
+                    return;
+                }
+                tooltip.innerHTML = html;
+                tooltip.style.display = 'block';
+                tooltip.style.left = `${Math.min(x + 14, width - 40)}px`;
+                tooltip.style.top = `${Math.min(y + 14, height - 40)}px`;
+            }
+
+            function updateSelectionInfo() {
+                if (!selectionInfo) return;
+                if (!selected) {
+                    selectionInfo.innerHTML = 'Кликните по узлу, чтобы подсветить его соседей.';
+                    return;
+                }
+                const sid = selected.id;
+                const neigh = neighbors.get(sid);
+                const deg = neigh ? neigh.size : 0;
+                selectionInfo.innerHTML = `
+                    <div><strong style="color: var(--text-primary);">Выбран:</strong> ${escapeHtml(shortNodeLabel(sid))}</div>
+                    <div style="margin-top: 4px;">Соседей (по текущим фильтрам): <strong style="color: var(--text-primary);">${deg}</strong></div>
+                    <div style="margin-top: 6px; color: var(--text-muted);">Полный ID: ${escapeHtml(String(sid))}</div>
+                `;
+            }
+
+            function isNeighbor(a, b) {
+                if (!a || !b) return false;
+                const s = neighbors.get(a.id);
+                return !!(s && s.has(b.id));
+            }
+
+            function draw() {
+                ctx.save();
+                ctx.clearRect(0, 0, width, height);
+                ctx.translate(transform.x, transform.y);
+                ctx.scale(transform.k, transform.k);
+
+                const sel = selected;
+                const hasSel = !!sel;
+
+                // Edges
+                for (const e of visibleEdges) {
+                    const a = e.source;
+                    const b = e.target;
+                    if (!a || !b) continue;
+
+                    const connected = !hasSel || a.id === sel.id || b.id === sel.id || isNeighbor(sel, a) || isNeighbor(sel, b);
+                    ctx.globalAlpha = connected ? 0.35 : 0.06;
+                    ctx.strokeStyle = typeColor[e.type] || '#8b949e';
+                    ctx.lineWidth = 1 / transform.k;
+                    ctx.beginPath();
+                    ctx.moveTo(a.x, a.y);
+                    ctx.lineTo(b.x, b.y);
+                    ctx.stroke();
+                }
+
+                // Nodes
+                for (const n of nodes) {
+                    const label = shortNodeLabel(n.id);
+                    const kind = nodeKind(label);
+
+                    const connected = !hasSel || n.id === sel.id || isNeighbor(sel, n);
+                    const isHover = hovered && hovered.id === n.id;
+                    const isSel = hasSel && n.id === sel.id;
+
+                    let fill = '#8b949e';
+                    if (kind === 'term') fill = '#c678dd';
+                    if (kind === 'article') fill = '#58a6ff';
+                    if (isSel) fill = '#f85149';
+                    if (isHover) fill = '#79c0ff';
+
+                    const r = (kind === 'term' ? 3.5 : 4.5) + (isSel ? 2.0 : 0) + (isHover ? 1.0 : 0);
+                    ctx.globalAlpha = connected ? 0.95 : 0.25;
+                    ctx.fillStyle = fill;
+                    ctx.beginPath();
+                    ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Labels when zoomed in
+                if (transform.k >= 2.2) {
+                    ctx.globalAlpha = 0.9;
+                    ctx.fillStyle = '#c9d1d9';
+                    ctx.font = `${Math.max(10, Math.min(14, 12 / transform.k + 10))}px -apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',Helvetica,Arial,sans-serif`;
+                    for (const n of nodes) {
+                        if (selected && n.id !== selected.id && !isNeighbor(selected, n)) continue;
+                        const label = shortNodeLabel(n.id);
+                        ctx.fillText(label, n.x + 6, n.y - 6);
+                    }
+                }
+
+                ctx.restore();
+                ctx.globalAlpha = 1;
+            }
+
+            function updateQuadtree() {
+                quadtree = d3.quadtree(nodes, d => d.x, d => d.y);
+            }
+
+            function updateVisibleEdges() {
+                visibleEdges = edgesAll.filter(edgeVisible);
+                linkForce.links(visibleEdges);
+                buildNeighbors(visibleEdges);
+
+                const nodesEl = document.getElementById('graphNodesCount');
+                const edgesEl = document.getElementById('graphEdgesCount');
+                if (nodesEl) nodesEl.textContent = String(nodes.length);
+                if (edgesEl) edgesEl.textContent = String(visibleEdges.length);
+
+                updateSelectionInfo();
+                simulation.alpha(0.65).restart();
+            }
+
+            function findNodeByQuery(q) {
+                const query = (q || '').trim().toLowerCase();
+                if (!query) return null;
+                // 1) try exact label match
+                let exact = nodes.find(n => shortNodeLabel(n.id).toLowerCase() === query);
+                if (exact) return exact;
+                // 2) substring match
+                return nodes.find(n => shortNodeLabel(n.id).toLowerCase().includes(query) || String(n.id).toLowerCase().includes(query)) || null;
+            }
+
+            function centerOnNode(n) {
+                if (!n) return;
+                const k = Math.max(transform.k, 1.6);
+                const t = d3.zoomIdentity
+                    .translate(width / 2 - n.x * k, height / 2 - n.y * k)
+                    .scale(k);
+                d3.select(canvas).transition().duration(350).call(zoom.transform, t);
+            }
+
+            // Zoom/pan
+            const zoom = d3.zoom()
+                .scaleExtent([0.12, 8])
+                .on('zoom', (event) => {
+                    transform = event.transform;
+                    draw();
+                });
+            d3.select(canvas).call(zoom);
+
+            // Pointer handlers
+            function onMove(ev) {
+                const { x, y, sx, sy } = screenToWorld(ev.clientX, ev.clientY);
+
+                if (isDragging && dragNode) {
+                    dragNode.fx = x;
+                    dragNode.fy = y;
+                    draw();
+                    return;
+                }
+
+                if (!quadtree) return;
+                const radius = 12 / transform.k;
+                const n = quadtree.find(x, y, radius) || null;
+                hovered = n;
+
+                if (hovered) {
+                    const lbl = shortNodeLabel(hovered.id);
+                    setTooltip(true, sx, sy, `
+                        <div><strong style="color: var(--text-primary);">${escapeHtml(lbl)}</strong></div>
+                        <div style="margin-top: 4px; color: var(--text-muted);">${escapeHtml(String(hovered.id))}</div>
+                    `);
+                } else {
+                    setTooltip(false);
+                }
+                draw();
+            }
+
+            function onDown(ev) {
+                const { x, y } = screenToWorld(ev.clientX, ev.clientY);
+                if (!quadtree) return;
+                const radius = 14 / transform.k;
+                const n = quadtree.find(x, y, radius) || null;
+                if (!n) return;
+
+                isDragging = true;
+                dragNode = n;
+                dragNode.fx = n.x;
+                dragNode.fy = n.y;
+                simulation.alphaTarget(0.25).restart();
+            }
+
+            function onUp(ev) {
+                if (isDragging && dragNode) {
+                    dragNode.fx = null;
+                    dragNode.fy = null;
+                }
+                isDragging = false;
+                dragNode = null;
+                simulation.alphaTarget(0);
+            }
+
+            function onClick(ev) {
+                const { x, y } = screenToWorld(ev.clientX, ev.clientY);
+                if (!quadtree) return;
+                const radius = 14 / transform.k;
+                const n = quadtree.find(x, y, radius) || null;
+                if (!n) {
+                    selected = null;
+                    updateSelectionInfo();
+                    draw();
+                    return;
+                }
+                selected = n;
+                updateSelectionInfo();
+                draw();
+            }
+
+            canvas.addEventListener('mousemove', onMove);
+            canvas.addEventListener('mouseleave', () => {
+                hovered = null;
+                setTooltip(false);
+                draw();
+            });
+            canvas.addEventListener('mousedown', onDown);
+            window.addEventListener('mouseup', onUp);
+            canvas.addEventListener('click', onClick);
+
+            // Filters + search
+            const cbRef = document.getElementById('cbReference');
+            const cbTerm = document.getElementById('cbTerm');
+            const cbDef = document.getElementById('cbDefinition');
+            const searchInput = document.getElementById('graphSearchInput');
+            const searchBtn = document.getElementById('graphSearchBtn');
+            const resetBtn = document.getElementById('graphResetBtn');
+
+            if (cbRef) cbRef.addEventListener('change', () => { showReference = !!cbRef.checked; updateVisibleEdges(); });
+            if (cbTerm) cbTerm.addEventListener('change', () => { showTerm = !!cbTerm.checked; updateVisibleEdges(); });
+            if (cbDef) cbDef.addEventListener('change', () => { showDefinition = !!cbDef.checked; updateVisibleEdges(); });
+
+            function doSearch() {
+                const q = (searchInput?.value || '').trim();
+                const n = findNodeByQuery(q);
+                if (!n) {
+                    const msg = q ? `Узел не найден: ${escapeHtml(q)}` : 'Введите запрос для поиска узла';
+                    if (selectionInfo) selectionInfo.innerHTML = msg;
+                    return;
+                }
+                selected = n;
+                updateSelectionInfo();
+                centerOnNode(n);
+                draw();
+            }
+
+            if (searchBtn) searchBtn.addEventListener('click', doSearch);
+            if (searchInput) searchInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') doSearch(); });
+            if (resetBtn) resetBtn.addEventListener('click', () => {
+                selected = null;
+                hovered = null;
+                updateSelectionInfo();
+                d3.select(canvas).transition().duration(250).call(zoom.transform, d3.zoomIdentity);
+                draw();
+            });
+
+            // Resize
+            const onResize = () => {
+                const r = wrap.getBoundingClientRect();
+                const w = Math.max(600, Math.floor(r.width));
+                const ratio2 = window.devicePixelRatio || 1;
+                canvas.width = Math.floor(w * ratio2);
+                canvas.height = Math.floor(height * ratio2);
+                canvas.style.width = `${w}px`;
+                canvas.style.height = `${height}px`;
+                ctx.setTransform(ratio2, 0, 0, ratio2, 0, 0);
+                simulation.force('center', d3.forceCenter(w / 2, height / 2));
+                simulation.alpha(0.3).restart();
+            };
+            window.addEventListener('resize', onResize);
+
+            // Run
+            buildNeighbors(visibleEdges);
+            updateSelectionInfo();
+            updateQuadtree();
+            simulation.on('tick', () => {
+                updateQuadtree();
+                draw();
+            });
+            draw();
+
+            __graphVis = {
+                simulation,
+                cleanup: () => {
+                    canvas.removeEventListener('mousemove', onMove);
+                    canvas.removeEventListener('mousedown', onDown);
+                    canvas.removeEventListener('click', onClick);
+                    window.removeEventListener('mouseup', onUp);
+                    window.removeEventListener('resize', onResize);
+                }
+            };
+
+            // Prime counts (filtered)
+            const nodesEl = document.getElementById('graphNodesCount');
+            const edgesEl = document.getElementById('graphEdgesCount');
+            if (nodesEl) nodesEl.textContent = String(nodes.length);
+            if (edgesEl) edgesEl.textContent = String(visibleEdges.length);
+
+            // Ensure checkboxes reflect defaults
+            if (cbRef) cbRef.checked = true;
+            if (cbTerm) cbTerm.checked = true;
+            if (cbDef) cbDef.checked = true;
+        }
+        
+        async function performSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) {
+                showError('Введите запрос для поиска');
+                return;
+            }
+            
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="loading">Поиск</div>';
+            
+            try {
+                const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+                const data = await response.json();
+                
+                console.log('Результаты поиска:', data);
+                
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+                
+                if (data.results && data.results.length > 0) {
+                    console.log('Найдено результатов:', data.results.length);
+                    console.log('Первый результат:', data.results[0]);
+                    let html = `
+                        <div class="results-header">
+                            <div class="section-title">Результаты поиска</div>
+                            <div class="results-count">Найдено: ${data.results.length}</div>
+                        </div>
+                    `;
+                    
+                    data.results.forEach((result, index) => {
+                        const docLabel = result.document_title || result.document_filename || result.law_title || result.law_id || 'N/A';
+                        const headerTitle = result.article_title ? `: ${escapeHtml(result.article_title)}` : '';
+                        const clickable = result.document_id ? 'clickable' : '';
+                        const onClick = result.document_id ? `onclick="window.location.href='/document/${result.document_id}?article=${encodeURIComponent(result.article_number || '')}'"` : '';
+                        const pageBadge = result.article_page ? `<span class="page-badge">стр. ${escapeHtml(String(result.article_page))}</span>` : '';
+                        html += `
+                            <div class="result-item ${clickable}" ${onClick} style="${result.document_id ? 'cursor:pointer;' : ''}">
+                                <h3>
+                                    <span class="article-number">${escapeHtml(docLabel)} — Статья ${result.article_number || 'N/A'}${headerTitle}</span>
+                                    ${pageBadge}
+                                </h3>
+                                <p>${result.article_text ? truncateText(result.article_text, 300) : 'Текст не доступен'}</p>
+                                <div class="meta">
+                                    <span>Результат ${index + 1}</span>
+                                    ${result.document_filename ? `<span>Файл: ${escapeHtml(result.document_filename)}</span>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    resultsDiv.innerHTML = html;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🔍</div>
+                            <div>Результаты не найдены</div>
+                            <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+                                Попробуйте изменить запрос или загрузить документы
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                showError(`Ошибка: ${error.message}`);
+            }
+        }
+        
+        async function uploadDocument() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showError('Выберите файл для загрузки');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="loading">Обработка документа</div>';
+            
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+                
+                const entitiesCount = Object.values(data.entities || {}).reduce((sum, arr) => sum + arr.length, 0);
+                const termsCount = data.key_terms?.length || 0;
+                
+                resultsDiv.innerHTML = `
+                    <div class="success">
+                        <strong>✓ Документ успешно обработан</strong>
+                    </div>
+                    <div class="result-item" style="margin-top: 16px;">
+                        <h3>${data.law_id}</h3>
+                        <div class="meta" style="margin-top: 12px; border: none; padding: 0;">
+                            <span class="badge">Сущностей: ${entitiesCount}</span>
+                            <span class="badge">Терминов: ${termsCount}</span>
+                            <span class="badge success">Обработано</span>
+                        </div>
+                        ${termsCount > 0 ? `
+                            <p style="margin-top: 12px; color: var(--text-secondary); font-size: 12px;">
+                                <strong>Ключевые термины:</strong> ${data.key_terms.slice(0, 10).map(t => t[0]).join(', ')}
+                            </p>
+                        ` : ''}
+                    </div>
+                `;
+                
+                // Сброс выбора файла
+                fileInput.value = '';
+                document.getElementById('fileName').textContent = '';
+                
+                // Обновление графа и истории
+                loadGraph();
+                loadHistory();
+            } catch (error) {
+                showError(`Ошибка: ${error.message}`);
+            }
+        }
+        
+        async function loadHistory() {
+            try {
+                const response = await fetch('/api/history');
+                const data = await response.json();
+                
+                const historyContent = document.getElementById('historyContent');
+                
+                if (data.error) {
+                    historyContent.innerHTML = `<div class="error">Ошибка загрузки истории: ${data.error}</div>`;
+                    return;
+                }
+                
+                if (data.documents && data.documents.length > 0) {
+                    let html = '';
+                    
+                    data.documents.forEach((doc) => {
+                        const uploadDate = new Date(doc.uploaded_at);
+                        const formattedDate = uploadDate.toLocaleString('ru-RU', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                        
+                        const fileSize = doc.file_size ? formatFileSize(doc.file_size) : 'N/A';
+                        
+                        html += `
+                            <div class="result-item" style="margin-bottom: 12px; position: relative;">
+                                <h3 style="font-size: 14px; margin-bottom: 8px; color: var(--accent); cursor: pointer;" 
+                                    onclick="window.location.href='/document/${doc.id}'">
+                                    ${escapeHtml(doc.title || doc.filename)}
+                                </h3>
+                                <div class="meta" style="margin-top: 8px; border: none; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+                                    <span class="badge">${escapeHtml(doc.filename)}</span>
+                                    <span class="badge">Размер: ${fileSize}</span>
+                                    <span class="badge">Сущностей: ${doc.entities_count || 0}</span>
+                                    <span class="badge">Терминов: ${doc.terms_count || 0}</span>
+                                    <div style="margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                                        <button class="danger" onclick="event.stopPropagation(); deleteDocument(${doc.id}, '${escapeHtml(doc.title || doc.filename)}')" 
+                                                title="Удалить документ">
+                                            🗑️ Удалить
+                                        </button>
+                                        <span style="color: var(--text-muted); font-size: 11px;">
+                                            ${formattedDate}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    historyContent.innerHTML = html;
+                } else {
+                    historyContent.innerHTML = `
+                        <div class="empty-state" style="padding: 24px;">
+                            <div class="empty-state-icon">📄</div>
+                            <div>История пуста</div>
+                            <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+                                Загрузите документы, чтобы они появились в истории
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                const historyContent = document.getElementById('historyContent');
+                historyContent.innerHTML = `<div class="error">Ошибка загрузки истории: ${error.message}</div>`;
+            }
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+        
+        async function loadGraph() {
+            try {
+                const response = await fetch('/api/graph');
+                const data = await response.json();
+                
+                if (data.error) {
+                    console.error('Ошибка загрузки графа:', data.error);
+                    return;
+                }
+                
+                const graphContainer = document.getElementById('graph');
+                const graphContent = document.getElementById('graphContent');
+                
+                if (data.nodes.length > 0 || data.edges.length > 0) {
+                    graphContainer.style.display = 'block';
+                    
+                    graphContent.innerHTML = `
+                        <div class="graph-stats">
+                            <div class="stat-item">
+                                <div class="stat-value" id="graphNodesCount">${data.nodes.length}</div>
+                                <div class="stat-label">Узлов</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="graphEdgesCount">${data.edges.length}</div>
+                                <div class="stat-label">Связей</div>
+                            </div>
+                        </div>
+                        <div class="graph-toolbar">
+                            <label class="chip"><input id="cbReference" type="checkbox" checked style="margin-right: 6px;"> Ссылки</label>
+                            <label class="chip"><input id="cbTerm" type="checkbox" checked style="margin-right: 6px;"> Термины</label>
+                            <label class="chip"><input id="cbDefinition" type="checkbox" checked style="margin-right: 6px;"> Определения</label>
+
+                            <div style="flex: 1 1 200px;"></div>
+
+                            <input id="graphSearchInput" type="text" placeholder="Найти узел (номер статьи / term_...)" style="max-width: 360px;">
+                            <button id="graphSearchBtn" class="secondary" type="button">Найти</button>
+                            <button id="graphResetBtn" class="secondary" type="button">Сброс</button>
+                        </div>
+
+                        <div id="graphCanvasWrap" class="graph-canvas-wrap">
+                            <canvas id="graphCanvas"></canvas>
+                        </div>
+                        <div id="graphTooltip" class="graph-tooltip"></div>
+                        <div class="graph-legend">
+                            <div class="legend-item"><span class="legend-line" style="background:${'#d29922'};"></span> reference</div>
+                            <div class="legend-item"><span class="legend-line" style="background:${'#58a6ff'};"></span> term</div>
+                            <div class="legend-item"><span class="legend-line" style="background:${'#3fb950'};"></span> definition</div>
+                            <div class="legend-item"><span class="legend-dot" style="background:${'#58a6ff'};"></span> статья</div>
+                            <div class="legend-item"><span class="legend-dot" style="background:${'#c678dd'};"></span> термин</div>
+                        </div>
+                        <div id="graphSelection" class="graph-selection"></div>
+                    `;
+
+                    initGraphD3(data);
+                } else {
+                    graphContainer.style.display = 'none';
+                    destroyGraphVis();
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки графа:', error);
+            }
+        }
+        
+        function showError(message) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `<div class="error">${message}</div>`;
+        }
+        
+        function truncateText(text, maxLength) {
+            if (text.length <= maxLength) return text;
+            return text.substring(0, maxLength) + '...';
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        async function deleteDocument(docId, docTitle) {
+            if (!confirm(`Вы уверены, что хотите удалить документ "${docTitle}"?\n\nДокумент будет удален из истории, но файл останется на сервере.`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/document/${docId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+                
+                // Обновляем историю после удаления
+                loadHistory();
+                
+                // Показываем сообщение об успехе
+                const resultsDiv = document.getElementById('results');
+                resultsDiv.innerHTML = `
+                    <div class="success">
+                        <strong>✓ Документ успешно удален</strong>
+                    </div>
+                `;
+                
+                // Скрываем сообщение через 3 секунды
+                setTimeout(() => {
+                    resultsDiv.innerHTML = '';
+                }, 3000);
+                
+            } catch (error) {
+                showError(`Ошибка удаления документа: ${error.message}`);
+            }
+        }
+        
+        // Поиск по Enter
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+        
+        // Загрузка графа и истории при загрузке страницы
+        loadGraph();
+        loadHistory();
+    </script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+# Core dependencies
+rdflib>=6.3.1
+pandas>=2.2.0
+# Для Python 3.13 используем numpy 2.x, для более старых версий - 1.26.x
+numpy>=2.0.0; python_version >= "3.12"
+numpy>=1.26.0,<2.0.0; python_version < "3.12"
+
+# Web framework
+flask>=3.0.0
+flask-cors>=4.0.0
+
+# NLP libraries
+nltk>=3.8.1
+spacy>=3.7.0
+pymorphy2>=0.9.1
+pymorphy2-dicts-ru>=2.4.393442.3710985
+
+# Text processing
+beautifulsoup4>=4.12.2
+lxml>=4.9.0
+pdfplumber>=0.10.0
+python-docx>=1.1.0
+
+# GraphDB connection
+SPARQLWrapper>=2.0.0
+
+# Utilities
+python-dotenv>=1.0.0
+requests>=2.31.0
+pyyaml>=6.0.1
