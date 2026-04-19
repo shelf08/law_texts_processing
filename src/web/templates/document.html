@@ -3,290 +3,360 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Просмотр документа</title>
+    <title>Просмотр документа — ПравоНавт</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
         :root {
-            --bg-primary: #0d1117;
-            --bg-secondary: #161b22;
-            --bg-tertiary: #21262d;
-            --border-color: #30363d;
-            --text-primary: #c9d1d9;
-            --text-secondary: #8b949e;
-            --text-muted: #6e7681;
-            --accent: #58a6ff;
-            --accent-hover: #79c0ff;
-            --success: #3fb950;
-            --error: #f85149;
-            --warning: #d29922;
+            --bg-primary:    #0d1117;
+            --bg-secondary:  #161b22;
+            --bg-tertiary:   #21262d;
+            --border-color:  #30363d;
+            --text-primary:  #c9d1d9;
+            --text-secondary:#8b949e;
+            --text-muted:    #6e7681;
+            --accent:        #58a6ff;
+            --accent-hover:  #79c0ff;
+            --success:       #3fb950;
+            --error:         #f85149;
+            --warning:       #d29922;
+            --card-shadow:   0 1px 4px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.025);
+            --nav-h:         52px;
+            --radius:        10px;
         }
-        
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+            font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
             min-height: 100vh;
             line-height: 1.5;
             font-size: 14px;
         }
-        
-        .container {
-            max-width: 1600px;
-            margin: 0 auto;
-            padding: 24px;
+
+        /* ── NAV ─────────────────────────────────────────────────────────── */
+        .topnav {
+            position: sticky; top: 0; z-index: 200;
+            height: var(--nav-h);
+            background: rgba(13,17,23,0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(48,54,61,0.9);
+            display: flex; align-items: center;
+            padding: 0 24px;
         }
-        
-        header {
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 24px;
-            margin-bottom: 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .brand {
+            display: flex; align-items: center; gap: 8px;
+            text-decoration: none; color: var(--text-primary);
+            font-family: 'Outfit', sans-serif;
+            font-size: 15px; font-weight: 700; letter-spacing: -.02em;
         }
-        
+        .brand-icon { color: var(--accent); flex-shrink: 0; }
+        .nav-sep { width: 1px; height: 16px; background: var(--border-color); margin: 0 12px; }
+        .breadcrumb {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 13px; color: var(--text-muted);
+            overflow: hidden;
+        }
+        .breadcrumb a { color: var(--text-secondary); text-decoration: none; }
+        .breadcrumb a:hover { color: var(--accent); }
+        .breadcrumb-sep { color: var(--text-muted); font-size: 11px; }
+        .breadcrumb-current {
+            color: var(--text-primary); font-weight: 500;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            max-width: 400px;
+        }
+        .nav-links { display: flex; align-items: center; gap: 2px; margin-left: auto; }
+        .nav-link {
+            padding: 5px 11px; border-radius: 6px;
+            color: var(--text-secondary); text-decoration: none;
+            font-size: 13px; font-weight: 500;
+            transition: color .15s, background .15s;
+            display: flex; align-items: center; gap: 5px;
+        }
+        .nav-link:hover { color: var(--text-primary); background: var(--bg-tertiary); }
+
+        /* ── LAYOUT ──────────────────────────────────────────────────────── */
+        .container { max-width: 1600px; margin: 0 auto; padding: 24px; }
+
+        .doc-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 20px; gap: 16px; flex-wrap: wrap;
+        }
         h1 {
-            font-size: 20px;
-            font-weight: 600;
-            color: var(--text-primary);
+            font-family: 'Outfit', sans-serif;
+            font-size: 20px; font-weight: 700; letter-spacing: -.02em;
+            color: var(--text-primary); flex: 1; min-width: 0;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
-        
-        .back-button {
-            padding: 8px 16px;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            color: var(--text-primary);
-            text-decoration: none;
-            font-size: 14px;
-            transition: background 0.2s;
-        }
-        
-        .back-button:hover {
-            background: var(--bg-primary);
-            border-color: var(--accent);
-        }
-        
+
         .document-layout {
             display: grid;
-            grid-template-columns: 1fr 350px;
-            gap: 24px;
+            grid-template-columns: 1fr 320px;
+            gap: 20px;
+            align-items: start;
         }
-        
-        @media (max-width: 1024px) {
-            .document-layout {
-                grid-template-columns: 1fr;
-            }
-        }
-        
+        @media (max-width: 1024px) { .document-layout { grid-template-columns: 1fr; } }
+
+        /* ── VIEWER ──────────────────────────────────────────────────────── */
         .document-viewer {
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
-            border-radius: 6px;
+            border-radius: var(--radius);
             overflow: hidden;
-            min-height: 800px;
+            min-height: 700px;
+            box-shadow: var(--card-shadow);
         }
-        
         .document-viewer iframe {
-            width: 100%;
-            height: 100%;
-            min-height: 800px;
-            border: none;
+            width: 100%; height: 100%; min-height: 700px; border: none;
         }
-        
         .document-viewer .text-viewer {
             padding: 24px;
             white-space: pre-wrap;
-            font-family: 'Courier New', monospace;
-            line-height: 1.8;
+            font-family: 'IBM Plex Mono', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.75;
+            color: var(--text-primary);
         }
-        
-        .sidebar {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-        
+
+        /* ── SIDEBAR ─────────────────────────────────────────────────────── */
+        .sidebar { display: flex; flex-direction: column; gap: 14px; }
+
         .sidebar-section {
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 16px;
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
         }
-        
-        .section-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .entity-list, .term-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        
-        .entity-item, .term-item {
-            padding: 8px 12px;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            font-size: 13px;
-        }
-        
-        .entity-item strong {
-            color: var(--accent);
-            display: block;
-            margin-bottom: 4px;
-        }
-        
-        .term-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .term-text {
-            color: var(--text-primary);
-        }
-        
-        .term-freq {
-            color: var(--text-muted);
-            font-size: 11px;
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 48px 24px;
-            color: var(--text-secondary);
-        }
-        
-        .loading::after {
-            content: '...';
-            animation: dots 1.5s steps(4, end) infinite;
-        }
-        
-        @keyframes dots {
-            0%, 20% { content: '.'; }
-            40% { content: '..'; }
-            60%, 100% { content: '...'; }
-        }
-        
-        .error {
-            background: rgba(248, 81, 73, 0.1);
-            border: 1px solid var(--error);
-            color: var(--error);
-            padding: 12px 16px;
-            border-radius: 6px;
-            margin-top: 16px;
-            font-size: 14px;
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 24px;
-            color: var(--text-secondary);
-            font-size: 13px;
-        }
-        
-        .badge {
-            display: inline-block;
-            padding: 2px 8px;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 500;
-            color: var(--text-secondary);
-            margin-right: 6px;
-            margin-bottom: 6px;
-        }
-        
-        .document-info {
-            margin-bottom: 16px;
-            padding-bottom: 16px;
+
+        .card-header {
+            display: flex; align-items: center; gap: 8px;
+            padding: 10px 14px;
             border-bottom: 1px solid var(--border-color);
+            background: rgba(255,255,255,0.015);
         }
-        
+        .card-icon { color: var(--accent); opacity: .85; flex-shrink: 0; }
+        .card-title {
+            font-size: 11px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: .07em;
+            color: var(--text-muted);
+        }
+        .card-body { padding: 14px; }
+
+        .section-title {
+            font-size: 15px; font-weight: 600;
+            color: var(--text-primary);
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        /* ── DOC INFO ────────────────────────────────────────────────────── */
+        .document-info { display: flex; flex-direction: column; gap: 1px; }
+
         .document-info-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 13px;
+            display: flex; justify-content: space-between; align-items: baseline;
+            padding: 7px 0;
+            border-bottom: 1px solid rgba(48,54,61,.5);
+            font-size: 13px; gap: 12px;
         }
-        
-        .document-info-label {
+        .document-info-item:last-child { border-bottom: none; }
+        .document-info-label { color: var(--text-muted); flex-shrink: 0; }
+        .document-info-value { color: var(--text-primary); font-weight: 500; text-align: right; }
+
+        /* ── ENTITIES ────────────────────────────────────────────────────── */
+        .entity-group { margin-bottom: 14px; }
+        .entity-group:last-child { margin-bottom: 0; }
+        .entity-group-label {
+            font-size: 11px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: .06em;
+            margin-bottom: 7px;
+        }
+        .entity-group-label.laws    { color: var(--accent); }
+        .entity-group-label.articles{ color: var(--success); }
+        .entity-group-label.dates   { color: #bc8cff; }
+
+        .badge-wrap { display: flex; flex-wrap: wrap; gap: 5px; }
+
+        .badge {
+            display: inline-flex; align-items: center;
+            padding: 2px 8px;
+            background: var(--bg-tertiary); border: 1px solid var(--border-color);
+            border-radius: 6px; font-size: 11px; font-weight: 500;
             color: var(--text-secondary);
         }
-        
-        .document-info-value {
-            color: var(--text-primary);
+        .badge.law     { background: rgba(88,166,255,.08); border-color: rgba(88,166,255,.3);  color: var(--accent); }
+        .badge.article { background: rgba(63,185,80,.08);  border-color: rgba(63,185,80,.3);   color: var(--success); }
+        .badge.date    { background: rgba(188,140,255,.08);border-color: rgba(188,140,255,.3); color: #bc8cff; }
+        .badge.success { background: rgba(63,185,80,.08);  border-color: rgba(63,185,80,.35);  color: var(--success); }
+        .badge.error   { background: rgba(248,81,73,.08);  border-color: rgba(248,81,73,.35);  color: var(--error); }
+
+        /* ── TERMS ───────────────────────────────────────────────────────── */
+        .term-list { display: flex; flex-direction: column; gap: 2px; }
+        .term-item {
+            display: flex; align-items: center; gap: 8px;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(48,54,61,.4);
+            font-size: 12px;
         }
+        .term-item:last-child { border-bottom: none; }
+        .term-text { color: var(--text-primary); flex: 1; }
+        .term-freq {
+            color: var(--text-muted); font-size: 11px;
+            background: var(--bg-tertiary); border: 1px solid var(--border-color);
+            border-radius: 4px; padding: 1px 6px;
+            font-variant-numeric: tabular-nums; flex-shrink: 0;
+        }
+
+        /* ── UTILS ───────────────────────────────────────────────────────── */
+        .loading { text-align: center; padding: 32px 16px; color: var(--text-secondary); font-size: 13px; }
+        .loading::after { content: '...'; animation: dots 1.5s steps(4,end) infinite; }
+        @keyframes dots {
+            0%,20%{content:'.'} 40%{content:'..'} 60%,100%{content:'...'}
+        }
+        .error {
+            background: rgba(248,81,73,.07); border: 1px solid rgba(248,81,73,.35);
+            color: var(--error); padding: 12px 14px; border-radius: 8px; font-size: 13px;
+        }
+        .empty-state { text-align: center; padding: 20px; color: var(--text-secondary); font-size: 13px; }
+
+        .back-button {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 7px 14px;
+            background: var(--bg-tertiary); border: 1px solid var(--border-color);
+            border-radius: 8px; color: var(--text-primary);
+            text-decoration: none; font-size: 13px; font-weight: 500;
+            transition: background .15s, border-color .15s;
+            white-space: nowrap;
+        }
+        .back-button:hover { background: var(--bg-primary); border-color: var(--accent); color: var(--accent); }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1 id="documentTitle">Загрузка документа...</h1>
-            <a href="/" class="back-button">← Назад к списку</a>
-        </header>
-        
-        <div class="document-layout">
-            <div class="document-viewer" id="documentViewer">
-                <div class="loading">Загрузка документа</div>
-            </div>
-            
-            <div class="sidebar">
-                <div class="sidebar-section">
-                    <div class="section-title">📋 Информация</div>
+
+<!-- ── NAV ─────────────────────────────────────────────────────────────── -->
+<nav class="topnav">
+    <a class="brand" href="/">
+        <svg class="brand-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="3" x2="12" y2="21"/>
+            <line x1="8"  y1="21" x2="16" y2="21"/>
+            <line x1="3"  y1="8"  x2="21" y2="8"/>
+            <line x1="5"  y1="8"  x2="5"  y2="14"/>
+            <line x1="19" y1="8"  x2="19" y2="14"/>
+            <path d="M2 14a3 3 0 0 0 6 0H2z"/>
+            <path d="M16 14a3 3 0 0 0 6 0h-6z"/>
+        </svg>
+        ПравоНавт
+    </a>
+    <div class="nav-sep"></div>
+    <div class="breadcrumb">
+        <a href="/">Главная</a>
+        <span class="breadcrumb-sep">›</span>
+        <span class="breadcrumb-current" id="documentTitle">Загрузка...</span>
+    </div>
+    <div class="nav-links">
+        <a href="/graph" class="nav-link">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <circle cx="5"  cy="12" r="2"/><circle cx="19" cy="5"  r="2"/>
+                <circle cx="19" cy="19" r="2"/>
+                <line x1="7" y1="11.5" x2="17" y2="6.5"/>
+                <line x1="7" y1="12.5" x2="17" y2="17.5"/>
+            </svg>
+            Граф
+        </a>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="doc-header">
+        <h1 id="documentTitle-h1" style="display:none"></h1>
+        <a href="/" class="back-button">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                <line x1="19" y1="12" x2="5" y2="12"/>
+                <polyline points="12 19 5 12 12 5"/>
+            </svg>
+            К списку
+        </a>
+    </div>
+
+    <div class="document-layout">
+        <div class="document-viewer" id="documentViewer">
+            <div class="loading">Загрузка документа</div>
+        </div>
+
+        <div class="sidebar">
+            <!-- INFO -->
+            <div class="sidebar-section">
+                <div class="card-header">
+                    <svg class="card-icon" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    <span class="card-title">Информация</span>
+                </div>
+                <div class="card-body">
                     <div class="document-info" id="documentInfo">
                         <div class="loading">Загрузка...</div>
                     </div>
                 </div>
-                
-                <div class="sidebar-section">
-                    <div class="section-title">🔖 Сущности</div>
-                    <div id="entitiesContent">
-                        <div class="loading">Загрузка...</div>
-                    </div>
+            </div>
+
+            <!-- ENTITIES -->
+            <div class="sidebar-section">
+                <div class="card-header">
+                    <svg class="card-icon" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                    </svg>
+                    <span class="card-title">Сущности</span>
                 </div>
-                
-                <div class="sidebar-section">
-                    <div class="section-title">📝 Ключевые термины</div>
-                    <div id="termsContent">
-                        <div class="loading">Загрузка...</div>
-                    </div>
+                <div class="card-body" id="entitiesContent">
+                    <div class="loading">Загрузка...</div>
+                </div>
+            </div>
+
+            <!-- TERMS -->
+            <div class="sidebar-section">
+                <div class="card-header">
+                    <svg class="card-icon" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 20h9"/>
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                    </svg>
+                    <span class="card-title">Ключевые термины</span>
+                </div>
+                <div class="card-body" id="termsContent">
+                    <div class="loading">Загрузка...</div>
                 </div>
             </div>
         </div>
     </div>
-    
-    <script>
+</div>
+
+<script>
         const docId = {{ doc_id }};
-        
+
         async function loadDocument() {
             try {
                 const response = await fetch(`/api/document/${docId}`);
                 const data = await response.json();
-                
+
                 if (data.error) {
                     document.getElementById('documentTitle').textContent = 'Ошибка';
                     document.getElementById('documentViewer').innerHTML = `<div class="error">${data.error}</div>`;
                     return;
                 }
-                
+
                 // Установка заголовка
-                document.getElementById('documentTitle').textContent = data.title || data.filename;
-                
+                const title = data.title || data.filename;
+                document.getElementById('documentTitle').textContent = title;
+
                 // Загрузка информации о документе
                 const uploadDate = new Date(data.uploaded_at);
                 const formattedDate = uploadDate.toLocaleString('ru-RU', {
@@ -296,32 +366,32 @@
                     hour: '2-digit',
                     minute: '2-digit'
                 });
-                
+
                 const fileSize = data.file_size ? formatFileSize(data.file_size) : 'N/A';
-                
+
                 document.getElementById('documentInfo').innerHTML = `
                     <div class="document-info-item">
-                        <span class="document-info-label">Файл:</span>
+                        <span class="document-info-label">Файл</span>
                         <span class="document-info-value">${data.filename}</span>
                     </div>
                     <div class="document-info-item">
-                        <span class="document-info-label">Размер:</span>
+                        <span class="document-info-label">Размер</span>
                         <span class="document-info-value">${fileSize}</span>
                     </div>
                     <div class="document-info-item">
-                        <span class="document-info-label">Загружен:</span>
+                        <span class="document-info-label">Загружен</span>
                         <span class="document-info-value">${formattedDate}</span>
                     </div>
                     <div class="document-info-item">
-                        <span class="document-info-label">Сущностей:</span>
+                        <span class="document-info-label">Сущностей</span>
                         <span class="document-info-value">${data.entities_count || 0}</span>
                     </div>
                     <div class="document-info-item">
-                        <span class="document-info-label">Терминов:</span>
+                        <span class="document-info-label">Терминов</span>
                         <span class="document-info-value">${data.terms_count || 0}</span>
                     </div>
                 `;
-                
+
                 // Отображение документа
                 const fileExt = data.filename.split('.').pop().toLowerCase();
                 const fileUrl = `/api/document/${docId}/file`;
@@ -365,7 +435,7 @@
                 }
 
                 const viewerRoot = document.getElementById('fileViewer') || document.getElementById('documentViewer');
-                
+
                 if (fileExt === 'pdf') {
                     // PDF через iframe
                     const pageHash = (typeof window.__targetPdfPage === 'string' && window.__targetPdfPage)
@@ -410,43 +480,43 @@
                             <p style="margin-bottom: 16px; color: var(--text-secondary);">
                                 Просмотр этого формата файла не поддерживается в браузере
                             </p>
-                            <a href="${fileUrl}" download="${data.filename}" 
-                               style="display: inline-block; padding: 8px 16px; background: var(--accent); 
+                            <a href="${fileUrl}" download="${data.filename}"
+                               style="display: inline-block; padding: 8px 16px; background: var(--accent);
                                       color: white; border-radius: 6px; text-decoration: none;">
                                 Скачать файл
                             </a>
                         </div>
                     `;
                 }
-                
+
                 // Отображение сущностей
                 const entities = data.entities || {};
                 let entitiesHtml = '';
-                
+
                 if (entities.laws && entities.laws.length > 0) {
-                    entitiesHtml += '<div style="margin-bottom: 16px;"><strong style="color: var(--accent); display: block; margin-bottom: 8px;">Законы:</strong>';
+                    entitiesHtml += '<div class="entity-group"><div class="entity-group-label laws">Законы</div><div class="badge-wrap">';
                     entities.laws.forEach(law => {
-                        entitiesHtml += `<div class="badge">${escapeHtml(law)}</div>`;
+                        entitiesHtml += `<div class="badge law">${escapeHtml(law)}</div>`;
                     });
-                    entitiesHtml += '</div>';
+                    entitiesHtml += '</div></div>';
                 }
-                
+
                 if (entities.articles && entities.articles.length > 0) {
-                    entitiesHtml += '<div style="margin-bottom: 16px;"><strong style="color: var(--accent); display: block; margin-bottom: 8px;">Статьи:</strong>';
+                    entitiesHtml += '<div class="entity-group"><div class="entity-group-label articles">Статьи</div><div class="badge-wrap">';
                     entities.articles.forEach(article => {
-                        entitiesHtml += `<div class="badge">${escapeHtml(article)}</div>`;
+                        entitiesHtml += `<div class="badge article">${escapeHtml(article)}</div>`;
                     });
-                    entitiesHtml += '</div>';
+                    entitiesHtml += '</div></div>';
                 }
-                
+
                 if (entities.dates && entities.dates.length > 0) {
-                    entitiesHtml += '<div style="margin-bottom: 16px;"><strong style="color: var(--accent); display: block; margin-bottom: 8px;">Даты:</strong>';
+                    entitiesHtml += '<div class="entity-group"><div class="entity-group-label dates">Даты</div><div class="badge-wrap">';
                     entities.dates.forEach(date => {
-                        entitiesHtml += `<div class="badge">${escapeHtml(date)}</div>`;
+                        entitiesHtml += `<div class="badge date">${escapeHtml(date)}</div>`;
                     });
-                    entitiesHtml += '</div>';
+                    entitiesHtml += '</div></div>';
                 }
-                
+
                 if (entitiesHtml) {
                     document.getElementById('entitiesContent').innerHTML = entitiesHtml;
                 } else {
@@ -454,7 +524,7 @@
                         <div class="empty-state">Сущности не найдены</div>
                     `;
                 }
-                
+
                 // Отображение терминов
                 const terms = data.terms || [];
                 if (terms.length > 0) {
@@ -474,7 +544,7 @@
                         <div class="empty-state">Термины не найдены</div>
                     `;
                 }
-                
+
             } catch (error) {
                 document.getElementById('documentTitle').textContent = 'Ошибка';
                 document.getElementById('documentViewer').innerHTML = `
@@ -482,7 +552,7 @@
                 `;
             }
         }
-        
+
         function formatFileSize(bytes) {
             if (bytes === 0) return '0 Bytes';
             const k = 1024;
@@ -490,16 +560,15 @@
             const i = Math.floor(Math.log(bytes) / Math.log(k));
             return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
         }
-        
+
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
-        
+
         // Загрузка документа при загрузке страницы
         loadDocument();
-    </script>
+</script>
 </body>
 </html>
-

@@ -22,17 +22,20 @@ class DocumentParser:
     def __init__(self):
         self.supported_formats = ['xml', 'html', 'pdf', 'txt']
     
-    def parse(self, file_path: Path) -> Dict:
-        """Парсить документ в зависимости от формата"""
+    def parse(self, file_path: Path, on_progress=None) -> Dict:
+        """
+        Парсить документ в зависимости от формата.
+        on_progress(percent: int, message: str) — опциональный колбэк прогресса.
+        """
         suffix = file_path.suffix.lower().lstrip('.')
-        
+
         if suffix not in self.supported_formats:
             raise ValueError(f"Неподдерживаемый формат: {suffix}")
-        
+
         if suffix == 'xml' or suffix == 'html':
             return self._parse_xml_html(file_path)
         elif suffix == 'pdf':
-            return self._parse_pdf(file_path)
+            return self._parse_pdf(file_path, on_progress=on_progress)
         elif suffix == 'txt':
             return self._parse_txt(file_path)
     
@@ -82,36 +85,34 @@ class DocumentParser:
             'full_text': soup.get_text()
         }
     
-    def _parse_pdf(self, file_path: Path) -> Dict:
-        """Парсить PDF документ"""
+    def _parse_pdf(self, file_path: Path, on_progress=None) -> Dict:
+        """Парсить PDF документ с отчётом о прогрессе по страницам."""
         if pdfplumber is None:
             raise ImportError("pdfplumber не установлен")
-        
-        text_content = []
+
         page_texts: List[str] = []
         with pdfplumber.open(file_path) as pdf:
-            for page in pdf.pages:
-                page_text = page.extract_text() or ''
-                page_texts.append(page_text)
-                text_content.append(page_text)
-        
-        full_text = '\n'.join(text_content)
-        
-        # Простая эвристика для извлечения статей
+            total = len(pdf.pages)
+            for i, page in enumerate(pdf.pages):
+                page_texts.append(page.extract_text() or '')
+                if on_progress and (i % 5 == 0 or i == total - 1):
+                    pct = int((i + 1) / total * 100)
+                    on_progress(pct, f'Чтение PDF: стр. {i + 1}/{total}')
+
+        full_text = '\n'.join(page_texts)
         articles = self._extract_articles_from_text(full_text)
 
-        # Определяем страницу начала статьи (где встречается заголовок "Статья N")
         page_map = self.build_article_page_map_from_pdf_text(page_texts)
         for a in articles:
             num = a.get('number')
             if num and num in page_map:
                 a['page'] = page_map[num]
-        
+
         return {
             'title': file_path.stem,
             'chapters': [],
             'articles': articles,
-            'full_text': full_text
+            'full_text': full_text,
         }
 
     def build_article_page_map_from_pdf_text(self, page_texts: List[str]) -> Dict[str, int]:
@@ -159,22 +160,26 @@ class DocumentParser:
         }
     
     def _extract_articles_from_text(self, text: str) -> List[Dict]:
-        """Извлечь статьи из текста по паттернам"""
+        """
+        Извлечь статьи из текста по паттернам.
+        Используем re.split вместо re.DOTALL+.*? чтобы избежать тормозов на больших текстах.
+        """
+        header_re = re.compile(r'Статья\s+(\d+(?:\.\d+)?)\.?', re.IGNORECASE)
+
+        # Разбиваем текст на части: [текст_до, "Статья N", тело, "Статья M", тело, ...]
+        parts = header_re.split(text)
+        # parts[0]           — текст до первой статьи
+        # parts[1], parts[2] — номер статьи 1, тело статьи 1
+        # parts[3], parts[4] — номер статьи 2, тело статьи 2 ...
+
         articles = []
-        
-        # Паттерн для поиска статей: "Статья 1.", "Статья 1.1", "Статья 123" и т.д.
-        pattern = r'Статья\s+(\d+(?:\.\d+)?)\.?\s*(.*?)(?=Статья\s+\d+|$)'
-        
-        matches = re.finditer(pattern, text, re.IGNORECASE | re.DOTALL)
-        
-        for match in matches:
-            article_num = match.group(1)
-            article_text = match.group(2).strip()
-            
-            articles.append({
-                'number': article_num,
-                'text': article_text
-            })
-        
+        i = 1
+        while i + 1 < len(parts):
+            num = parts[i].strip()
+            body = parts[i + 1].strip()
+            if num and body:
+                articles.append({'number': num, 'text': body})
+            i += 2
+
         return articles
 

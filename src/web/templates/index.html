@@ -3,438 +3,552 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Навигация по правовым актам</title>
+    <title>ПравоНавт — Навигация по правовым актам</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
         :root {
-            --bg-primary: #0d1117;
-            --bg-secondary: #161b22;
-            --bg-tertiary: #21262d;
-            --border-color: #30363d;
-            --text-primary: #c9d1d9;
-            --text-secondary: #8b949e;
-            --text-muted: #6e7681;
-            --accent: #58a6ff;
-            --accent-hover: #79c0ff;
-            --success: #3fb950;
-            --error: #f85149;
-            --warning: #d29922;
+            --bg-primary:    #0d1117;
+            --bg-secondary:  #161b22;
+            --bg-tertiary:   #21262d;
+            --border-color:  #30363d;
+            --text-primary:  #c9d1d9;
+            --text-secondary:#8b949e;
+            --text-muted:    #6e7681;
+            --accent:        #58a6ff;
+            --accent-hover:  #79c0ff;
+            --success:       #3fb950;
+            --error:         #f85149;
+            --warning:       #d29922;
+            --card-shadow:   0 1px 4px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.025);
+            --nav-h:         52px;
+            --radius:        10px;
         }
-        
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+            font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
             min-height: 100vh;
             line-height: 1.5;
             font-size: 14px;
         }
-        
-        .container {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 24px;
+
+        /* ── NAV ─────────────────────────────────────────────────────────── */
+        .topnav {
+            position: sticky; top: 0; z-index: 200;
+            height: var(--nav-h);
+            background: rgba(13,17,23,0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(48,54,61,0.9);
+            display: flex; align-items: center;
+            padding: 0 24px; gap: 0;
         }
-        
-        header {
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 24px;
-            margin-bottom: 32px;
+        .brand {
+            display: flex; align-items: center; gap: 8px;
+            text-decoration: none; color: var(--text-primary);
+            font-family: 'Outfit', sans-serif;
+            font-size: 15px; font-weight: 700; letter-spacing: -.02em;
         }
-        
+        .brand-icon { color: var(--accent); flex-shrink: 0; }
+        .nav-links { display: flex; align-items: center; gap: 2px; margin-left: auto; }
+        .nav-link {
+            padding: 5px 11px; border-radius: 6px;
+            color: var(--text-secondary); text-decoration: none;
+            font-size: 13px; font-weight: 500;
+            transition: color .15s, background .15s;
+        }
+        .nav-link:hover { color: var(--text-primary); background: var(--bg-tertiary); }
+        .nav-link.active { color: var(--text-primary); background: var(--bg-tertiary); }
+        .nav-link-graph {
+            display: flex; align-items: center; gap: 5px;
+        }
+
+        /* ── LAYOUT ──────────────────────────────────────────────────────── */
+        .container { max-width: 900px; margin: 0 auto; padding: 36px 24px 48px; }
+
+        .page-header { margin-bottom: 28px; }
         h1 {
-            font-size: 24px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 8px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 26px; font-weight: 700; letter-spacing: -.03em;
+            color: var(--text-primary); margin-bottom: 5px;
         }
-        
-        .subtitle {
-            color: var(--text-secondary);
-            font-size: 14px;
-        }
-        
+        .subtitle { color: var(--text-secondary); font-size: 14px; }
+
+        /* ── CARD ────────────────────────────────────────────────────────── */
         .section {
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 16px;
-            margin-bottom: 16px;
+            border-radius: var(--radius);
+            margin-bottom: 14px;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
         }
-        
+        .card-header {
+            display: flex; align-items: center; gap: 8px;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(255,255,255,0.015);
+        }
+        .card-icon { color: var(--accent); opacity: .85; flex-shrink: 0; }
+        .card-title {
+            font-size: 11px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: .07em;
+            color: var(--text-muted);
+        }
+        .card-body { padding: 16px; }
+
+        /* keep section-title for JS-generated HTML */
         .section-title {
-            font-size: 16px;
-            font-weight: 600;
+            font-size: 15px; font-weight: 600;
             color: var(--text-primary);
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            display: flex; align-items: center; gap: 8px;
         }
-        
-        .search-box {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 16px;
+
+        /* ── SEARCH ──────────────────────────────────────────────────────── */
+        .search-wrap {
+            position: relative; display: flex; align-items: center; gap: 8px;
+            margin-bottom: 11px;
         }
-        
+        .search-prefix {
+            position: absolute; left: 12px;
+            color: var(--text-muted); pointer-events: none; flex-shrink: 0;
+        }
         input[type="text"] {
             flex: 1;
-            padding: 8px 12px;
+            padding: 9px 12px 9px 38px;
             background: var(--bg-primary);
             border: 1px solid var(--border-color);
-            border-radius: 6px;
+            border-radius: 8px;
             color: var(--text-primary);
-            font-size: 14px;
-            font-family: inherit;
-            transition: border-color 0.2s;
+            font-size: 14px; font-family: inherit;
+            transition: border-color .15s, box-shadow .15s;
         }
-        
         input[type="text"]:focus {
             outline: none;
             border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+            box-shadow: 0 0 0 3px rgba(88,166,255,.1);
         }
-        
-        input[type="text"]::placeholder {
-            color: var(--text-muted);
-        }
-        
-        input[type="file"] {
-            display: none;
-        }
-        
-        .file-label {
-            display: inline-block;
-            padding: 8px 16px;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            color: var(--text-primary);
-            cursor: pointer;
-            font-size: 14px;
-            transition: background 0.2s;
-        }
-        
-        .file-label:hover {
-            background: var(--bg-primary);
-        }
-        
-        .file-name {
-            margin-left: 8px;
-            color: var(--text-secondary);
-            font-size: 12px;
-        }
-        
+        input[type="text"]::placeholder { color: var(--text-muted); }
+
         button {
-            padding: 8px 16px;
-            background: var(--accent);
-            color: #fff;
-            border: 1px solid var(--accent);
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
+            padding: 9px 18px;
+            background: var(--accent); color: #fff;
+            border: none; border-radius: 8px;
+            cursor: pointer; font-size: 14px; font-weight: 500;
             font-family: inherit;
-            transition: background 0.2s, border-color 0.2s;
+            transition: background .15s, transform .1s;
+            white-space: nowrap;
         }
-        
-        button:hover {
-            background: var(--accent-hover);
-            border-color: var(--accent-hover);
-        }
-        
-        button:active {
-            opacity: 0.8;
-        }
-        
+        button:hover { background: var(--accent-hover); }
+        button:active { transform: scale(0.98); }
+
         button.secondary {
             background: var(--bg-tertiary);
-            border-color: var(--border-color);
             color: var(--text-primary);
+            border: 1px solid var(--border-color);
         }
-        
-        button.secondary:hover {
-            background: var(--bg-primary);
-            border-color: var(--accent);
-        }
-        
+        button.secondary:hover { background: rgba(88,166,255,.06); border-color: var(--accent); color: var(--accent); }
+
         button.danger {
-            background: rgba(248, 81, 73, 0.1);
-            border-color: var(--error);
+            background: transparent;
+            border: 1px solid rgba(248,81,73,.35);
             color: var(--error);
-            padding: 4px 8px;
-            font-size: 12px;
+            padding: 4px 10px; font-size: 12px;
         }
-        
-        button.danger:hover {
-            background: rgba(248, 81, 73, 0.2);
-            border-color: var(--error);
+        button.danger:hover { background: rgba(248,81,73,.1); border-color: var(--error); }
+
+        .status-bar {
+            font-size: 12px; color: var(--text-muted);
+            display: flex; align-items: center; gap: 6px;
         }
-        
-        .upload-controls {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
+        .status-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--text-muted); flex-shrink: 0;
+            transition: background .3s;
         }
-        
-        .results {
-            margin-top: 24px;
+        .status-dot.active { background: var(--success); box-shadow: 0 0 6px rgba(63,185,80,.5); }
+
+        /* ── UPLOAD ──────────────────────────────────────────────────────── */
+        input[type="file"] { display: none; }
+
+        .upload-zone {
+            display: flex; flex-direction: column;
+            align-items: center; gap: 7px;
+            padding: 28px 24px;
+            border: 1.5px dashed var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: border-color .15s, background .15s;
+            text-align: center; margin-bottom: 12px;
         }
-        
+        .upload-zone:hover {
+            border-color: var(--accent);
+            background: rgba(88,166,255,.03);
+        }
+        .upload-zone-icon { color: var(--text-muted); transition: color .15s; }
+        .upload-zone:hover .upload-zone-icon { color: var(--accent); }
+        .upload-title { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+        .upload-sub { font-size: 11px; color: var(--text-muted); letter-spacing: .03em; }
+        .file-name { font-size: 12px; color: var(--accent); font-weight: 500; }
+
+        /* legacy classes */
+        .file-label {
+            display: inline-block; padding: 8px 16px;
+            background: var(--bg-tertiary); border: 1px solid var(--border-color);
+            border-radius: 6px; color: var(--text-primary);
+            cursor: pointer; font-size: 14px; transition: background .2s;
+        }
+        .file-label:hover { background: var(--bg-primary); }
+        .upload-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+        /* ── PROGRESS ────────────────────────────────────────────────────── */
+        .progress-wrap { display: none; margin-top: 14px; }
+        .progress-wrap.visible { display: block; }
+        .progress-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 6px; font-size: 12px; color: var(--text-secondary);
+        }
+        .progress-pct {
+            font-weight: 600; color: var(--accent);
+            font-size: 13px; font-variant-numeric: tabular-nums;
+        }
+        .progress-bar-track {
+            height: 4px; background: var(--bg-tertiary);
+            border-radius: 999px; overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #1f6feb, #58a6ff);
+            border-radius: 999px; transition: width .3s ease; width: 0%;
+        }
+        .progress-bar-fill.done { background: linear-gradient(90deg, #238636, #3fb950); }
+        .progress-bar-fill.error { background: var(--error); }
+
+        /* ── RESULT CARDS (JS-generated) ─────────────────────────────────── */
+        .results { margin-top: 24px; }
         .results-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 16px; flex-wrap: wrap; gap: 8px;
         }
-        
-        .results-count {
-            color: var(--text-secondary);
-            font-size: 12px;
-        }
-        
+        .results-count { font-size: 12px; color: var(--text-muted); }
+
         .result-item {
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 16px;
-            margin-bottom: 12px;
-            transition: border-color 0.2s;
+            border-radius: 8px; padding: 14px 16px; margin-bottom: 10px;
+            transition: border-color .15s, box-shadow .15s;
         }
-        
         .result-item:hover {
-            border-color: var(--accent);
+            border-color: rgba(88,166,255,.35);
+            box-shadow: 0 0 0 1px rgba(88,166,255,.08), 0 2px 8px rgba(0,0,0,.3);
         }
-        
         .result-item h3 {
-            color: var(--accent);
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
+            color: var(--accent); font-size: 14px; font-weight: 600;
+            margin-bottom: 6px;
+            display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
         }
-        
-        .result-item .article-number {
+        .result-item .article-number { color: var(--text-secondary); font-weight: 400; }
+        .result-item p {
+            color: var(--text-primary); line-height: 1.65;
+            margin-top: 6px; font-size: 13px;
+        }
+        .result-item .meta {
+            display: flex; flex-wrap: wrap; gap: 8px;
+            margin-top: 10px; padding-top: 10px;
+            border-top: 1px solid var(--border-color);
+            font-size: 12px; color: var(--text-secondary); align-items: center;
+        }
+
+        /* ── BADGES ──────────────────────────────────────────────────────── */
+        .badge {
+            display: inline-flex; align-items: center;
+            padding: 2px 8px;
+            background: var(--bg-tertiary); border: 1px solid var(--border-color);
+            border-radius: 6px; font-size: 11px; font-weight: 500;
             color: var(--text-secondary);
-            font-weight: 400;
+        }
+        .badge.success {
+            background: rgba(63,185,80,.08); border-color: rgba(63,185,80,.35);
+            color: var(--success);
+        }
+        .badge.error {
+            background: rgba(248,81,73,.08); border-color: rgba(248,81,73,.35);
+            color: var(--error);
         }
 
         .page-badge {
-            flex: none;
-            font-size: 12px;
-            color: var(--text-secondary);
-            border: 1px solid var(--border-color);
-            background: var(--bg-tertiary);
-            padding: 2px 8px;
-            border-radius: 999px;
-            white-space: nowrap;
+            flex: none; font-size: 11px; color: var(--text-secondary);
+            border: 1px solid var(--border-color); background: var(--bg-tertiary);
+            padding: 2px 8px; border-radius: 6px; white-space: nowrap;
         }
-        
-        .result-item p {
-            color: var(--text-primary);
-            line-height: 1.6;
-            margin-top: 8px;
+
+        .score-badge {
+            flex: none; font-size: 11px; font-weight: 600;
+            padding: 2px 8px; border-radius: 6px; white-space: nowrap; border: 1px solid;
         }
-        
-        .result-item .meta {
-            display: flex;
-            gap: 16px;
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid var(--border-color);
-            font-size: 12px;
-            color: var(--text-secondary);
+        .score-badge.high   { color: var(--success); border-color: rgba(63,185,80,.5);  background: rgba(63,185,80,.08); }
+        .score-badge.medium { color: var(--warning); border-color: rgba(210,153,34,.5); background: rgba(210,153,34,.08); }
+        .score-badge.low    { color: var(--text-muted); border-color: var(--border-color); background: var(--bg-tertiary); }
+
+        .search-mode-indicator {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 11px; color: var(--text-secondary);
+            padding: 3px 9px; border: 1px solid var(--border-color);
+            border-radius: 6px; background: var(--bg-tertiary);
         }
-        
-        .loading {
-            text-align: center;
-            padding: 48px 24px;
-            color: var(--text-secondary);
+        .search-mode-indicator.semantic {
+            color: var(--accent); border-color: rgba(88,166,255,.4);
+            background: rgba(88,166,255,.07);
         }
-        
-        .loading::after {
-            content: '...';
-            animation: dots 1.5s steps(4, end) infinite;
-        }
-        
-        @keyframes dots {
-            0%, 20% { content: '.'; }
-            40% { content: '..'; }
-            60%, 100% { content: '...'; }
-        }
-        
+
+        /* ── ALERTS ──────────────────────────────────────────────────────── */
         .error {
-            background: rgba(248, 81, 73, 0.1);
-            border: 1px solid var(--error);
-            color: var(--error);
-            padding: 12px 16px;
-            border-radius: 6px;
-            margin-top: 16px;
-            font-size: 14px;
+            background: rgba(248,81,73,.07); border: 1px solid rgba(248,81,73,.35);
+            color: var(--error); padding: 12px 16px; border-radius: 8px; font-size: 13px;
         }
-        
         .success {
-            background: rgba(63, 185, 80, 0.1);
-            border: 1px solid var(--success);
-            color: var(--success);
-            padding: 12px 16px;
-            border-radius: 6px;
-            margin-top: 16px;
-            font-size: 14px;
+            background: rgba(63,185,80,.07); border: 1px solid rgba(63,185,80,.35);
+            color: var(--success); padding: 12px 16px; border-radius: 8px; font-size: 13px;
         }
-        
-        .empty-state {
-            text-align: center;
-            padding: 48px 24px;
-            color: var(--text-secondary);
+
+        /* ── LOADING / EMPTY ─────────────────────────────────────────────── */
+        .loading { text-align: center; padding: 40px 24px; color: var(--text-secondary); }
+        .loading::after { content: '...'; animation: dots 1.5s steps(4,end) infinite; }
+        @keyframes dots {
+            0%,20% { content: '.'; } 40% { content: '..'; } 60%,100% { content: '...'; }
         }
-        
-        .empty-state-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
-            opacity: 0.5;
+        .empty-state { text-align: center; padding: 36px 24px; color: var(--text-secondary); }
+        .empty-state-icon { font-size: 36px; margin-bottom: 10px; opacity: .4; }
+
+        /* ── EXAMPLES ────────────────────────────────────────────────────── */
+        .examples-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+        .example-chip {
+            padding: 3px 10px;
+            background: var(--bg-tertiary); border: 1px solid var(--border-color);
+            border-radius: 999px; font-size: 12px; color: var(--text-secondary);
+            cursor: pointer; transition: border-color .15s, color .15s; user-select: none;
         }
-        
-        .badge {
-            display: inline-block;
-            padding: 2px 8px;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 500;
-            color: var(--text-secondary);
-        }
-        
-        .badge.success {
-            background: rgba(63, 185, 80, 0.1);
-            border-color: var(--success);
-            color: var(--success);
-        }
-        
-        .badge.error {
-            background: rgba(248, 81, 73, 0.1);
-            border-color: var(--error);
-            color: var(--error);
-        }
-        
+        .example-chip:hover { border-color: var(--accent); color: var(--accent); }
+
         @media (max-width: 768px) {
-            .container {
-                padding: 16px;
-            }
-            
-            .search-box {
-                flex-direction: column;
-            }
-            
-            button {
-                width: 100%;
-            }
+            .container { padding: 16px; }
+            h1 { font-size: 22px; }
+            .search-wrap { flex-wrap: wrap; }
+            .search-wrap button { width: 100%; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Навигация по правовым актам</h1>
-            <p class="subtitle">Обработка и систематизация юридических текстов с помощью онтологий</p>
-        </header>
-        
-        <div class="section">
-            <div class="section-title">🔍 Поиск</div>
-            <div class="search-box">
-                <input type="text" id="searchInput" placeholder="Введите термин или ключевое слово...">
+
+<!-- ── NAV ─────────────────────────────────────────────────────────────── -->
+<nav class="topnav">
+    <a class="brand" href="/">
+        <svg class="brand-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="3" x2="12" y2="21"/>
+            <line x1="8"  y1="21" x2="16" y2="21"/>
+            <line x1="3"  y1="8"  x2="21" y2="8"/>
+            <line x1="5"  y1="8"  x2="5"  y2="14"/>
+            <line x1="19" y1="8"  x2="19" y2="14"/>
+            <path d="M2 14a3 3 0 0 0 6 0H2z"/>
+            <path d="M16 14a3 3 0 0 0 6 0h-6z"/>
+        </svg>
+        ПравоНавт
+    </a>
+    <div class="nav-links">
+        <a href="/" class="nav-link active">Главная</a>
+        <a href="/graph" class="nav-link nav-link-graph">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <circle cx="5"  cy="12" r="2"/><circle cx="19" cy="5"  r="2"/>
+                <circle cx="19" cy="19" r="2"/>
+                <line x1="7" y1="11.5" x2="17" y2="6.5"/>
+                <line x1="7" y1="12.5" x2="17" y2="17.5"/>
+            </svg>
+            Граф связей
+        </a>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="page-header">
+        <h1>Навигация по правовым актам</h1>
+        <p class="subtitle">Обработка и систематизация юридических текстов с помощью онтологий</p>
+    </div>
+
+    <!-- SEARCH -->
+    <div class="section">
+        <div class="card-header">
+            <svg class="card-icon" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <span class="card-title">Поиск</span>
+        </div>
+        <div class="card-body">
+            <div class="search-wrap">
+                <svg class="search-prefix" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input type="text" id="searchInput"
+                       placeholder="Введите термин, фразу или номер статьи...">
                 <button onclick="performSearch()">Поиск</button>
             </div>
-        </div>
-        
-        <div class="section">
-            <div class="section-title">📄 Загрузка документа</div>
-            <div class="upload-controls">
-                <label for="fileInput" class="file-label">
-                    Выбрать файл
-                </label>
-                <span id="fileName" class="file-name"></span>
-                <button onclick="uploadDocument()" class="secondary">Загрузить и обработать</button>
-            </div>
-            <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
-                Поддерживаемые форматы: XML, HTML, PDF, TXT
+            <div class="status-bar" id="statusBar">
+                <span class="status-dot" id="semanticDot"></span>
+                <span id="semanticStatus">Проверка семантического поиска...</span>
             </div>
         </div>
-        
-        <div class="section">
-            <div class="section-title">📚 История загрузок</div>
-            <div id="historyContent">
-                <div class="loading">Загрузка истории...</div>
-            </div>
-        </div>
-        
-        <div id="results" class="results"></div>
-        
     </div>
-    
-    <input type="file" id="fileInput" accept=".xml,.html,.pdf,.txt">
-    <script>
+
+    <!-- UPLOAD -->
+    <div class="section">
+        <div class="card-header">
+            <svg class="card-icon" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            <span class="card-title">Загрузка документа</span>
+        </div>
+        <div class="card-body">
+            <label for="fileInput" class="upload-zone">
+                <svg class="upload-zone-icon" width="30" height="30" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <span class="upload-title">Нажмите для выбора файла</span>
+                <span class="upload-sub">XML · HTML · PDF · TXT</span>
+                <span id="fileName" class="file-name"></span>
+            </label>
+            <button onclick="uploadDocument()" class="secondary" style="width:100%">
+                Загрузить и обработать
+            </button>
+            <div class="progress-wrap" id="uploadProgress">
+                <div class="progress-header">
+                    <span id="progressMessage">Обработка...</span>
+                    <span class="progress-pct" id="progressPct">0%</span>
+                </div>
+                <div class="progress-bar-track">
+                    <div class="progress-bar-fill" id="progressFill"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="section">
+        <div class="card-header">
+            <svg class="card-icon" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <span class="card-title">История загрузок</span>
+        </div>
+        <div class="card-body" id="historyContent">
+            <div class="loading">Загрузка истории</div>
+        </div>
+    </div>
+
+    <div id="results" class="results"></div>
+</div>
+
+<input type="file" id="fileInput" accept=".xml,.html,.pdf,.txt">
+
+<script>
         // Обновление имени файла
         document.getElementById('fileInput').addEventListener('change', function(e) {
             const fileName = e.target.files[0]?.name || '';
             document.getElementById('fileName').textContent = fileName;
         });
-        
+
+        async function checkStatus() {
+            try {
+                const resp = await fetch('/api/status');
+                const data = await resp.json();
+                const dot = document.getElementById('semanticDot');
+                const label = document.getElementById('semanticStatus');
+                if (data.semantic_search) {
+                    dot.classList.add('active');
+                    const indexed = data.indexed_articles || 0;
+                    label.textContent = indexed > 0
+                        ? `Семантический поиск активен · ${indexed} статей проиндексировано`
+                        : 'Семантический поиск активен · загрузите документ для индексации';
+                } else {
+                    label.textContent = 'Семантический поиск недоступен (установите sentence-transformers)';
+                }
+            } catch (e) {
+                document.getElementById('semanticStatus').textContent = '';
+            }
+        }
+
+        function makeScoreBadge(score) {
+            if (score == null) return '';
+            const pct = Math.round(score * 100);
+            const cls = pct >= 70 ? 'high' : pct >= 40 ? 'medium' : 'low';
+            return `<span class="score-badge ${cls}">${pct}%</span>`;
+        }
+
         async function performSearch() {
             const query = document.getElementById('searchInput').value.trim();
             if (!query) {
                 showError('Введите запрос для поиска');
                 return;
             }
-            
+
             const resultsDiv = document.getElementById('results');
             resultsDiv.innerHTML = '<div class="loading">Поиск</div>';
-            
+
             try {
                 const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
                 const data = await response.json();
-                
-                console.log('Результаты поиска:', data);
-                
+
                 if (data.error) {
                     showError(data.error);
                     return;
                 }
-                
+
                 if (data.results && data.results.length > 0) {
-                    console.log('Найдено результатов:', data.results.length);
-                    console.log('Первый результат:', data.results[0]);
+                    const isSemantic = data.search_mode === 'semantic';
+                    const modeHtml = isSemantic
+                        ? `<span class="search-mode-indicator semantic">⚡ Семантический поиск</span>`
+                        : `<span class="search-mode-indicator">🔤 Поиск по ключевым словам</span>`;
+
                     let html = `
                         <div class="results-header">
-                            <div class="section-title">Результаты поиска</div>
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <div class="section-title">Результаты поиска</div>
+                                ${modeHtml}
+                            </div>
                             <div class="results-count">Найдено: ${data.results.length}</div>
                         </div>
                     `;
-                    
+
                     data.results.forEach((result, index) => {
                         const docLabel = result.document_title || result.document_filename || result.law_title || result.law_id || 'N/A';
                         const headerTitle = result.article_title ? `: ${escapeHtml(result.article_title)}` : '';
                         const clickable = result.document_id ? 'clickable' : '';
                         const onClick = result.document_id ? `onclick="window.location.href='/document/${result.document_id}?article=${encodeURIComponent(result.article_number || '')}'"` : '';
                         const pageBadge = result.article_page ? `<span class="page-badge">стр. ${escapeHtml(String(result.article_page))}</span>` : '';
+                        const scoreBadge = result.semantic_score != null ? makeScoreBadge(result.semantic_score) : '';
                         html += `
                             <div class="result-item ${clickable}" ${onClick} style="${result.document_id ? 'cursor:pointer;' : ''}">
                                 <h3>
                                     <span class="article-number">${escapeHtml(docLabel)} — Статья ${result.article_number || 'N/A'}${headerTitle}</span>
-                                    ${pageBadge}
+                                    <span style="display:flex;gap:6px;align-items:center;">${scoreBadge}${pageBadge}</span>
                                 </h3>
-                                <p>${result.article_text ? truncateText(result.article_text, 300) : 'Текст не доступен'}</p>
+                                <p>${result.article_text ? truncateText(escapeHtml(result.article_text), 300) : 'Текст не доступен'}</p>
                                 <div class="meta">
                                     <span>Результат ${index + 1}</span>
                                     ${result.document_filename ? `<span>Файл: ${escapeHtml(result.document_filename)}</span>` : ''}
@@ -442,7 +556,7 @@
                             </div>
                         `;
                     });
-                    
+
                     resultsDiv.innerHTML = html;
                 } else {
                     resultsDiv.innerHTML = `
@@ -459,83 +573,121 @@
                 showError(`Ошибка: ${error.message}`);
             }
         }
-        
+
+        let _uploadPollTimer = null;
+
+        function setProgressVisible(visible) {
+            document.getElementById('uploadProgress').classList.toggle('visible', visible);
+        }
+
+        function updateProgressBar(percent, message, state) {
+            document.getElementById('progressPct').textContent = percent + '%';
+            document.getElementById('progressMessage').textContent = message;
+            const fill = document.getElementById('progressFill');
+            fill.style.width = percent + '%';
+            fill.className = 'progress-bar-fill' + (state === 'done' ? ' done' : state === 'error' ? ' error' : '');
+        }
+
         async function uploadDocument() {
             const fileInput = document.getElementById('fileInput');
             const file = fileInput.files[0];
-            
+
             if (!file) {
                 showError('Выберите файл для загрузки');
                 return;
             }
-            
+
+            // Сбрасываем предыдущий таймер если был
+            if (_uploadPollTimer) { clearTimeout(_uploadPollTimer); _uploadPollTimer = null; }
+
             const formData = new FormData();
             formData.append('file', file);
-            
-            const resultsDiv = document.getElementById('results');
-            resultsDiv.innerHTML = '<div class="loading">Обработка документа</div>';
-            
+
+            setProgressVisible(true);
+            updateProgressBar(0, 'Отправка файла...', 'processing');
+            document.getElementById('results').innerHTML = '';
+
+            let taskId;
             try {
-                const response = await fetch('/api/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const data = await response.json();
-                
-                if (data.error) {
-                    showError(data.error);
-                    return;
-                }
-                
-                const entitiesCount = Object.values(data.entities || {}).reduce((sum, arr) => sum + arr.length, 0);
-                const termsCount = data.key_terms?.length || 0;
-                
-                resultsDiv.innerHTML = `
-                    <div class="success">
-                        <strong>✓ Документ успешно обработан</strong>
-                    </div>
-                    <div class="result-item" style="margin-top: 16px;">
-                        <h3>${data.law_id}</h3>
-                        <div class="meta" style="margin-top: 12px; border: none; padding: 0;">
-                            <span class="badge">Сущностей: ${entitiesCount}</span>
-                            <span class="badge">Терминов: ${termsCount}</span>
-                            <span class="badge success">Обработано</span>
-                        </div>
-                        ${termsCount > 0 ? `
-                            <p style="margin-top: 12px; color: var(--text-secondary); font-size: 12px;">
-                                <strong>Ключевые термины:</strong> ${data.key_terms.slice(0, 10).map(t => t[0]).join(', ')}
-                            </p>
-                        ` : ''}
-                    </div>
-                `;
-                
-                // Сброс выбора файла
-                fileInput.value = '';
-                document.getElementById('fileName').textContent = '';
-                
-                // Обновление истории
-                loadHistory();
-            } catch (error) {
-                showError(`Ошибка: ${error.message}`);
+                const resp = await fetch('/api/upload', { method: 'POST', body: formData });
+                const data = await resp.json();
+                if (data.error) { showUploadError(data.error); return; }
+                taskId = data.task_id;
+            } catch (e) {
+                showUploadError('Ошибка отправки файла: ' + e.message);
+                return;
             }
+
+            // Сбрасываем файловый инпут сразу
+            fileInput.value = '';
+            document.getElementById('fileName').textContent = '';
+
+            // Опрос прогресса
+            function poll() {
+                fetch('/api/upload/status/' + taskId)
+                    .then(r => r.json())
+                    .then(task => {
+                        if (task.error) { showUploadError(task.error); return; }
+
+                        updateProgressBar(task.percent, task.message, task.status);
+
+                        if (task.status === 'done') {
+                            const result = task.result || {};
+                            const entitiesCount = Object.values(result.entities || {})
+                                .reduce((s, arr) => s + (arr?.length || 0), 0);
+                            const termsCount = result.key_terms?.length || 0;
+                            document.getElementById('results').innerHTML = `
+                                <div class="success"><strong>✓ Документ успешно обработан</strong></div>
+                                <div class="result-item" style="margin-top:16px;">
+                                    <h3>${escapeHtml(result.law_id || '')}</h3>
+                                    <div class="meta" style="margin-top:12px;border:none;padding:0;">
+                                        <span class="badge">Сущностей: ${entitiesCount}</span>
+                                        <span class="badge">Терминов: ${termsCount}</span>
+                                        <span class="badge success">Обработано</span>
+                                    </div>
+                                    ${termsCount > 0 ? `<p style="margin-top:12px;color:var(--text-secondary);font-size:12px;">
+                                        <strong>Ключевые термины:</strong> ${(result.key_terms||[]).slice(0,10).map(t=>escapeHtml(t[0])).join(', ')}
+                                    </p>` : ''}
+                                </div>
+                            `;
+                            setTimeout(() => { setProgressVisible(false); }, 2000);
+                            loadHistory();
+                            checkStatus();
+
+                        } else if (task.status === 'error') {
+                            showUploadError(task.message || 'Неизвестная ошибка');
+
+                        } else {
+                            // ещё обрабатывается
+                            _uploadPollTimer = setTimeout(poll, 600);
+                        }
+                    })
+                    .catch(e => { showUploadError('Ошибка опроса: ' + e.message); });
+            }
+
+            _uploadPollTimer = setTimeout(poll, 800);
         }
-        
+
+        function showUploadError(message) {
+            setProgressVisible(false);
+            showError(message);
+        }
+
         async function loadHistory() {
             try {
                 const response = await fetch('/api/history');
                 const data = await response.json();
-                
+
                 const historyContent = document.getElementById('historyContent');
-                
+
                 if (data.error) {
                     historyContent.innerHTML = `<div class="error">Ошибка загрузки истории: ${data.error}</div>`;
                     return;
                 }
-                
+
                 if (data.documents && data.documents.length > 0) {
                     let html = '';
-                    
+
                     data.documents.forEach((doc) => {
                         const uploadDate = new Date(doc.uploaded_at);
                         const formattedDate = uploadDate.toLocaleString('ru-RU', {
@@ -545,12 +697,12 @@
                             hour: '2-digit',
                             minute: '2-digit'
                         });
-                        
+
                         const fileSize = doc.file_size ? formatFileSize(doc.file_size) : 'N/A';
-                        
+
                         html += `
                             <div class="result-item" style="margin-bottom: 12px; position: relative;">
-                                <h3 style="font-size: 14px; margin-bottom: 8px; color: var(--accent); cursor: pointer;" 
+                                <h3 style="font-size: 14px; margin-bottom: 8px; color: var(--accent); cursor: pointer;"
                                     onclick="window.location.href='/document/${doc.id}'">
                                     ${escapeHtml(doc.title || doc.filename)}
                                 </h3>
@@ -560,7 +712,7 @@
                                     <span class="badge">Сущностей: ${doc.entities_count || 0}</span>
                                     <span class="badge">Терминов: ${doc.terms_count || 0}</span>
                                     <div style="margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
-                                        <button class="danger" onclick="event.stopPropagation(); deleteDocument(${doc.id}, '${escapeHtml(doc.title || doc.filename)}')" 
+                                        <button class="danger" onclick="event.stopPropagation(); deleteDocument(${doc.id}, '${escapeHtml(doc.title || doc.filename)}')"
                                                 title="Удалить документ">
                                             Удалить
                                         </button>
@@ -572,7 +724,7 @@
                             </div>
                         `;
                     });
-                    
+
                     historyContent.innerHTML = html;
                 } else {
                     historyContent.innerHTML = `
@@ -590,7 +742,7 @@
                 historyContent.innerHTML = `<div class="error">Ошибка загрузки истории: ${error.message}</div>`;
             }
         }
-        
+
         function formatFileSize(bytes) {
             if (bytes === 0) return '0 Bytes';
             const k = 1024;
@@ -598,43 +750,43 @@
             const i = Math.floor(Math.log(bytes) / Math.log(k));
             return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
         }
-        
+
         function showError(message) {
             const resultsDiv = document.getElementById('results');
             resultsDiv.innerHTML = `<div class="error">${message}</div>`;
         }
-        
+
         function truncateText(text, maxLength) {
             if (text.length <= maxLength) return text;
             return text.substring(0, maxLength) + '...';
         }
-        
+
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
-        
+
         async function deleteDocument(docId, docTitle) {
             if (!confirm(`Вы уверены, что хотите удалить документ "${docTitle}"?\n\nДокумент будет удален из истории, но файл останется на сервере.`)) {
                 return;
             }
-            
+
             try {
                 const response = await fetch(`/api/document/${docId}`, {
                     method: 'DELETE'
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (data.error) {
                     showError(data.error);
                     return;
                 }
-                
+
                 // Обновляем историю после удаления
                 loadHistory();
-                
+
                 // Показываем сообщение об успехе
                 const resultsDiv = document.getElementById('results');
                 resultsDiv.innerHTML = `
@@ -642,26 +794,27 @@
                         <strong>✓ Документ успешно удален</strong>
                     </div>
                 `;
-                
+
                 // Скрываем сообщение через 3 секунды
                 setTimeout(() => {
                     resultsDiv.innerHTML = '';
                 }, 3000);
-                
+
             } catch (error) {
                 showError(`Ошибка удаления документа: ${error.message}`);
             }
         }
-        
+
         // Поиск по Enter
         document.getElementById('searchInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 performSearch();
             }
         });
-        
-        // Загрузка истории при загрузке страницы
+
+        // Загрузка истории и статуса при загрузке страницы
         loadHistory();
-    </script>
+        checkStatus();
+</script>
 </body>
 </html>

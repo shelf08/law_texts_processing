@@ -2,6 +2,8 @@
 from flask import Flask, render_template, request, jsonify, send_file
 from flask_cors import CORS
 import logging
+import threading
+import uuid
 from pathlib import Path
 import re
 
@@ -9,6 +11,7 @@ from src.config import CONFIG, PROJECT_ROOT
 from src.ontology.ontology_manager import OntologyManager, LAW
 from src.ontology.graphdb_connector import GraphDBConnector
 from src.nlp.text_analyzer import TextAnalyzer
+from src.nlp.semantic_search import SemanticSearch
 from src.text_processing.document_parser import DocumentParser
 from src.web.database import DocumentHistoryDB
 
@@ -25,6 +28,7 @@ graphdb_connector = GraphDBConnector() if CONFIG['graphdb'].get('host') else Non
 text_analyzer = TextAnalyzer()
 document_parser = DocumentParser()
 document_history_db = DocumentHistoryDB()
+semantic_search = SemanticSearch()
 
 # Кеш страниц статей для PDF:
 # (doc_id, file_mtime) -> {
@@ -34,6 +38,148 @@ document_history_db = DocumentHistoryDB()
 #   "complete": bool        # досканировали до конца файла
 # }
 PDF_ARTICLE_PAGE_CACHE: dict[tuple[int, float], dict] = {}
+
+# { task_id: {status, percent, message, result} }
+_upload_tasks: dict[str, dict] = {}
+
+
+def _run_upload_task(task_id: str, file_path: Path, original_filename: str) -> None:
+    """Фоновая обработка документа с отчётом о прогрессе."""
+
+    def prog(percent: int, message: str) -> None:
+        _upload_tasks[task_id].update({'percent': percent, 'message': message})
+
+    try:
+        prog(5, 'Парсинг документа...')
+
+        def on_parse_progress(page_pct: int, message: str) -> None:
+            # Маппим страничный прогресс (0-100) на общий диапазон 5-18%
+            overall = 5 + int(page_pct * 0.13)
+            prog(overall, message)
+
+        parsed = document_parser.parse(file_path, on_progress=on_parse_progress)
+
+        prog(20, 'Анализ текста (NLP)...')
+        entities = text_analyzer.extract_entities(parsed['full_text'])
+        references = text_analyzer.extract_references(parsed['full_text'])
+
+        prog(35, 'Извлечение ключевых терминов...')
+        key_terms = text_analyzer.find_key_terms(parsed['full_text'])
+
+        prog(45, 'Добавление закона в онтологию...')
+        law_id = file_path.stem.replace(' ', '_')
+        law_uri = ontology_manager.add_law(law_id, parsed['title'])
+
+        articles = parsed.get('articles', [])
+        prog(50, f'Обработка статей ({len(articles)} шт.)...')
+        article_uris = {}
+        for article in articles:
+            article_id = f"{law_id}_article_{article['number']}"
+            article_uri = ontology_manager.add_article(
+                article_id,
+                None,
+                article['number'],
+                article.get('text', ''),
+                law_uri,
+                page=str(article.get('page')) if article.get('page') else None,
+            )
+            article_uris[article['number']] = article_uri
+
+        prog(60, 'Связывание терминов со статьями...')
+        term_uris = {}
+        for term_text, _freq in key_terms[:20]:
+            term_id = f"term_{term_text.replace(' ', '_').replace('-', '_')}"
+            term_uri = ontology_manager.add_term(term_id, term_text)
+            term_uris[term_text] = term_uri
+
+        linked_count = 0
+        for article in articles:
+            article_uri = article_uris.get(article['number'])
+            if article_uri and article.get('text'):
+                article_text_lower = article['text'].lower()
+                for term_text, term_uri in term_uris.items():
+                    term_lower = term_text.lower()
+                    if term_lower in article_text_lower:
+                        is_definition = article_text_lower.find(term_lower) < len(article['text']) * 0.1
+                        ontology_manager.link_term_to_article(article_uri, term_uri, is_definition)
+                        linked_count += 1
+        logger.info(f"Связано терминов со статьями: {linked_count}")
+
+        prog(70, 'Сохранение онтологии...')
+        ontology_manager.save()
+
+        # Семантические эмбеддинги с пошаговым прогрессом
+        if semantic_search.available:
+            articles_for_emb = [a for a in articles if a.get('text', '').strip()]
+            if articles_for_emb:
+                try:
+                    total_emb = len(articles_for_emb)
+                    prog(75, f'Семантические эмбеддинги: 0/{total_emb}...')
+                    texts = [a['text'] for a in articles_for_emb]
+                    batch_size = 32
+                    all_embeddings = []
+                    for i in range(0, total_emb, batch_size):
+                        batch = texts[i:i + batch_size]
+                        embs = semantic_search.embed(batch)
+                        all_embeddings.extend(embs)
+                        done = min(i + batch_size, total_emb)
+                        pct = 75 + int(done / total_emb * 18)
+                        prog(pct, f'Семантические эмбеддинги: {done}/{total_emb}...')
+
+                    embedding_data = [
+                        {'article_number': str(a['number']), 'article_text': a['text'], 'embedding': emb}
+                        for a, emb in zip(articles_for_emb, all_embeddings)
+                    ]
+                    document_history_db.save_article_embeddings(law_id, embedding_data)
+                    logger.info(f"Создано {len(embedding_data)} эмбеддингов для {law_id}")
+                except Exception as e:
+                    logger.warning(f"Не удалось создать эмбеддинги: {e}")
+
+        prog(95, 'Сохранение в базу данных...')
+        entities_dict = {
+            'laws': entities.get('laws', []),
+            'articles': entities.get('articles', []),
+            'dates': entities.get('dates', []),
+            'terms': entities.get('terms', []),
+        }
+        entities_count = sum(len(v) for v in entities_dict.values() if isinstance(v, list))
+        terms_count = len(key_terms)
+        file_size = file_path.stat().st_size if file_path.exists() else None
+        terms_list = [{'term': t[0], 'frequency': t[1]} for t in key_terms]
+
+        document_history_db.add_document(
+            filename=original_filename,
+            law_id=law_id,
+            title=parsed.get('title', original_filename),
+            file_path=file_path,
+            file_size=file_size,
+            entities_count=entities_count,
+            terms_count=terms_count,
+            entities=entities_dict,
+            terms=terms_list,
+        )
+
+        _upload_tasks[task_id] = {
+            'status': 'done',
+            'percent': 100,
+            'message': 'Документ успешно обработан',
+            'result': {
+                'law_id': law_id,
+                'entities': entities,
+                'references': references,
+                'key_terms': key_terms,
+            },
+        }
+        logger.info(f"Задача {task_id}: завершена успешно")
+
+    except Exception as e:
+        logger.error(f"Задача {task_id}: ошибка — {e}", exc_info=True)
+        _upload_tasks[task_id] = {
+            'status': 'error',
+            'percent': 0,
+            'message': str(e),
+            'result': None,
+        }
 
 @app.route('/')
 def index():
@@ -52,26 +198,17 @@ def search():
             """Пытаемся извлечь 'название статьи' из начала текста."""
             if not text:
                 return None
-            # Берём первую непустую строку
             for line in (ln.strip() for ln in text.splitlines()):
                 if not line:
                     continue
-                # отбрасываем служебные строки
                 if 'www.consultant' in line.lower():
                     continue
                 if re.search(r'^\(.*ред\..*\)$', line, flags=re.IGNORECASE):
                     continue
-                # если строка слишком длинная — это уже тело, не заголовок
                 if len(line) > 140:
                     return None
                 return line
             return None
-
-        # Поиск в онтологии
-        raw_results = ontology_manager.search_articles_by_term(query)
-        logger.info(f"Поиск '{query}': найдено {len(raw_results)} результатов")
-        if raw_results:
-            logger.info(f"Первый результат: {raw_results[0]}")
 
         def ensure_pdf_pages_for_doc(doc: dict, needed_numbers: set[str]) -> dict[str, int]:
             """
@@ -143,58 +280,91 @@ def search():
             except Exception:
                 return {}
 
-        # Обогащаем результат: документ/файл + название статьи + страница в PDF
+        def enrich_rows(raw_rows: list[dict], search_mode: str) -> list[dict]:
+            """Обогащает строки результатов: документ, название статьи, страница в PDF."""
+            needed_by_doc: dict[int, set[str]] = {}
+            tmp_rows: list[dict] = []
+
+            for r in raw_rows:
+                # Получаем law_id: либо уже есть, либо извлекаем из URI
+                law_id = r.get('law_id')
+                if not law_id:
+                    law_uri = r.get('law')
+                    if law_uri:
+                        law_id = str(law_uri).split('#')[-1]
+
+                doc = document_history_db.get_document_by_law_id(law_id) if law_id else None
+
+                article_text = r.get('article_text') or ''
+                article_title = extract_article_title(article_text)
+
+                row = {
+                    **r,
+                    'law_id': law_id,
+                    'law_title': r.get('law_title') or (doc.get('title') if doc else None),
+                    'document_id': doc.get('id') if doc else None,
+                    'document_filename': doc.get('filename') if doc else None,
+                    'document_title': doc.get('title') if doc else None,
+                    'article_title': article_title,
+                    'article_page': r.get('page') or None,
+                    'search_mode': search_mode,
+                }
+                tmp_rows.append(row)
+                if doc and row.get('article_number'):
+                    needed_by_doc.setdefault(doc['id'], set()).add(str(row['article_number']))
+
+            page_map_by_doc: dict[int, dict[str, int]] = {}
+            for doc_id, needed in needed_by_doc.items():
+                doc = document_history_db.get_document_by_id(doc_id)
+                if doc:
+                    page_map_by_doc[doc_id] = ensure_pdf_pages_for_doc(doc, needed)
+
+            results = []
+            for row in tmp_rows:
+                doc_id = row.get('document_id')
+                num = str(row.get('article_number') or '')
+                if doc_id and not row.get('article_page') and num:
+                    row['article_page'] = page_map_by_doc.get(doc_id, {}).get(num)
+                results.append(row)
+            return results
+
+        # --- Семантический поиск (приоритетный) ---
         results = []
-        # группируем нужные номера по документам (чтобы не сканировать PDF по одному результату)
-        needed_by_doc: dict[int, set[str]] = {}
-        tmp_rows: list[dict] = []
-        for r in raw_results:
-            law_uri = r.get('law')
-            law_id = None
-            if law_uri:
-                # http://.../#<law_id>
-                law_id = str(law_uri).split('#')[-1]
+        search_mode = 'keyword'
 
-            doc = document_history_db.get_document_by_law_id(law_id) if law_id else None
+        if semantic_search.available:
+            indexed = document_history_db.get_all_article_embeddings()
+            if indexed:
+                semantic_raw = semantic_search.search(query, indexed, top_k=20)
+                logger.info(f"Семантический поиск '{query}': {len(semantic_raw)} результатов")
+                if semantic_raw:
+                    results = enrich_rows(semantic_raw, 'semantic')
+                    search_mode = 'semantic'
 
-            article_text = r.get('article_text') or ''
-            article_title = extract_article_title(article_text)
+        # --- Fallback: поиск по ключевым словам через SPARQL ---
+        if not results:
+            raw_results = ontology_manager.search_articles_by_term(query)
+            logger.info(f"Keyword-поиск '{query}': {len(raw_results)} результатов")
+            results = enrich_rows(raw_results, 'keyword')
 
-            row = {
-                **r,
-                'law_id': law_id,
-                'law_title': r.get('law_title') or (doc.get('title') if doc else None),
-                'document_id': doc.get('id') if doc else None,
-                'document_filename': doc.get('filename') if doc else None,
-                'document_title': doc.get('title') if doc else None,
-                'article_title': article_title,
-                # заполнится ниже
-                'article_page': r.get('page') or None,
-            }
-            tmp_rows.append(row)
-            if doc and row.get('article_number'):
-                needed_by_doc.setdefault(doc['id'], set()).add(str(row['article_number']))
-
-        # подмешиваем страницы (для PDF документов). Здесь сознательно ЖДЕМ,
-        # пока страницы для всех результатов будут найдены (если это возможно),
-        # чтобы выдача выглядела "полной".
-        page_map_by_doc: dict[int, dict[str, int]] = {}
-        for doc_id, needed in needed_by_doc.items():
-            doc = document_history_db.get_document_by_id(doc_id)
-            if doc:
-                page_map_by_doc[doc_id] = ensure_pdf_pages_for_doc(doc, needed)
-
-        for row in tmp_rows:
-            doc_id = row.get('document_id')
-            num = str(row.get('article_number') or '')
-            if doc_id and not row.get('article_page') and num:
-                row['article_page'] = page_map_by_doc.get(doc_id, {}).get(num)
-            results.append(row)
-
-        return jsonify({'results': results})
+        return jsonify({'results': results, 'search_mode': search_mode})
     except Exception as e:
         logger.error(f"Ошибка поиска: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/status', methods=['GET'])
+def get_status():
+    """Статус компонентов системы"""
+    indexed_count = 0
+    try:
+        indexed_count = len(document_history_db.get_all_article_embeddings())
+    except Exception:
+        pass
+    return jsonify({
+        'semantic_search': semantic_search.available,
+        'semantic_model': semantic_search.model_name if semantic_search.available else None,
+        'indexed_articles': indexed_count,
+    })
 
 @app.route('/api/debug/ontology', methods=['GET'])
 def debug_ontology():
@@ -307,110 +477,47 @@ def get_laws():
 
 @app.route('/api/upload', methods=['POST'])
 def upload_document():
-    """Загрузить и обработать документ"""
+    """Начать загрузку документа — возвращает task_id для отслеживания прогресса."""
     if 'file' not in request.files:
         return jsonify({'error': 'Файл не загружен'}), 400
-    
+
     file = request.files['file']
     if file.filename == '':
         return jsonify({'error': 'Имя файла пустое'}), 400
-    
+
     try:
-        # Сохранение файла
         upload_dir = PROJECT_ROOT / CONFIG['data']['input_dir']
         upload_dir.mkdir(parents=True, exist_ok=True)
         file_path = upload_dir / file.filename
         file.save(str(file_path))
-        
-        # Парсинг документа
-        parsed = document_parser.parse(file_path)
-        
-        # Анализ текста
-        entities = text_analyzer.extract_entities(parsed['full_text'])
-        references = text_analyzer.extract_references(parsed['full_text'])
-        key_terms = text_analyzer.find_key_terms(parsed['full_text'])
-        
-        # Добавление в онтологию
-        law_id = file_path.stem.replace(' ', '_')
-        law_uri = ontology_manager.add_law(law_id, parsed['title'])
-        
-        # Добавление статей
-        article_uris = {}
-        for article in parsed.get('articles', []):
-            article_id = f"{law_id}_article_{article['number']}"
-            article_uri = ontology_manager.add_article(
-                article_id, 
-                None, 
-                article['number'],
-                article.get('text', ''),
-                law_uri,
-                page=str(article.get('page')) if article.get('page') else None
-            )
-            article_uris[article['number']] = article_uri
-        
-        # Добавление терминов в онтологию и связывание со статьями
-        term_uris = {}
-        for term_text, freq in key_terms[:20]:  # Топ-20 терминов
-            term_id = f"term_{term_text.replace(' ', '_').replace('-', '_')}"
-            term_uri = ontology_manager.add_term(term_id, term_text)
-            term_uris[term_text] = term_uri
-        
-        # Связывание терминов со статьями (если термин встречается в тексте статьи)
-        linked_count = 0
-        for article in parsed.get('articles', []):
-            article_uri = article_uris.get(article['number'])
-            if article_uri and article.get('text'):
-                article_text_lower = article['text'].lower()
-                for term_text, term_uri in term_uris.items():
-                    term_lower = term_text.lower()
-                    # Более точная проверка: ищем слово целиком, а не подстроку
-                    if term_lower in article_text_lower:
-                        # Проверяем, является ли термин определением (в начале статьи)
-                        is_definition = article_text_lower.find(term_lower) < len(article['text']) * 0.1
-                        ontology_manager.link_term_to_article(article_uri, term_uri, is_definition)
-                        linked_count += 1
-        logger.info(f"Связано терминов со статьями: {linked_count}")
-        
-        # Сохранение онтологии
-        ontology_manager.save()
-        
-        # Сохранение в базу данных истории
-        # Подготовка данных для сохранения
-        entities_dict = {
-            'laws': entities.get('laws', []),
-            'articles': entities.get('articles', []),
-            'dates': entities.get('dates', []),
-            'terms': entities.get('terms', [])
+
+        task_id = str(uuid.uuid4())
+        _upload_tasks[task_id] = {
+            'status': 'processing',
+            'percent': 0,
+            'message': 'Запуск обработки...',
+            'result': None,
         }
-        
-        # Вычисляем количество сущностей (сумма всех типов сущностей)
-        entities_count = sum(len(v) for v in entities_dict.values() if isinstance(v, list))
-        terms_count = len(key_terms) if key_terms else 0
-        file_size = file_path.stat().st_size if file_path.exists() else None
-        terms_list = [{'term': term[0], 'frequency': term[1]} for term in key_terms]
-        
-        document_history_db.add_document(
-            filename=file.filename,
-            law_id=law_id,
-            title=parsed.get('title', file.filename),
-            file_path=file_path,
-            file_size=file_size,
-            entities_count=entities_count,
-            terms_count=terms_count,
-            entities=entities_dict,
-            terms=terms_list
+        thread = threading.Thread(
+            target=_run_upload_task,
+            args=(task_id, file_path, file.filename),
+            daemon=True,
         )
-        
-        return jsonify({
-            'message': 'Документ успешно обработан',
-            'law_id': law_id,
-            'entities': entities,
-            'references': references,
-            'key_terms': key_terms
-        })
+        thread.start()
+        return jsonify({'task_id': task_id})
+
     except Exception as e:
-        logger.error(f"Ошибка обработки документа: {e}")
+        logger.error(f"Ошибка запуска загрузки: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/upload/status/<task_id>', methods=['GET'])
+def upload_status(task_id: str):
+    """Получить текущий прогресс задачи загрузки."""
+    task = _upload_tasks.get(task_id)
+    if not task:
+        return jsonify({'error': 'Задача не найдена'}), 404
+    return jsonify(task)
 
 @app.route('/api/history', methods=['GET'])
 def get_history():
@@ -554,7 +661,10 @@ def delete_document(doc_id):
         if not doc:
             return jsonify({'error': 'Документ не найден'}), 404
         
-        # Удаляем из БД
+        # Удаляем эмбеддинги и запись из БД
+        law_id = doc.get('law_id')
+        if law_id:
+            document_history_db.delete_article_embeddings_by_law_id(law_id)
         deleted = document_history_db.delete_document(doc_id)
         
         if deleted:
@@ -569,6 +679,75 @@ def delete_document(doc_id):
     except Exception as e:
         logger.error(f"Ошибка удаления документа: {e}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/graph')
+def graph_page():
+    return render_template('graph.html')
+
+
+@app.route('/api/graph')
+def get_graph():
+    try:
+        nodes: list[dict] = []
+        edges: list[dict] = []
+        seen: set[str] = set()
+
+        def add_node(uid: str, **kw) -> None:
+            if uid not in seen:
+                nodes.append({'id': uid, **kw})
+                seen.add(uid)
+
+        # Laws
+        for r in ontology_manager.query("""
+            PREFIX law: <http://law.ontology.ru/#>
+            SELECT ?uri ?title WHERE { ?uri a law:Law . ?uri law:hasTitle ?title . }
+        """):
+            uid = str(r['uri'])
+            add_node(uid, label=str(r.get('title', uid.split('#')[-1])), type='law')
+
+        # Articles + law→article edges
+        for r in ontology_manager.query("""
+            PREFIX law: <http://law.ontology.ru/#>
+            SELECT ?uri ?number ?lawUri WHERE {
+                ?uri a law:Article .
+                ?uri law:hasNumber ?number .
+                OPTIONAL { ?uri law:belongsToLaw ?lawUri . }
+            }
+        """):
+            uid = str(r['uri'])
+            law_uid = str(r['lawUri']) if r.get('lawUri') else None
+            add_node(uid, label=f"Ст. {r.get('number', '?')}", type='article', law=law_uid)
+            if law_uid and law_uid in seen:
+                edges.append({'source': law_uid, 'target': uid, 'type': 'contains'})
+
+        # Terms + article→term edges
+        for r in ontology_manager.query("""
+            PREFIX law: <http://law.ontology.ru/#>
+            SELECT DISTINCT ?article ?term ?termTitle WHERE {
+                { ?article law:definesTerm ?term . } UNION { ?article law:usesTerm ?term . }
+                ?term law:hasTitle ?termTitle .
+            }
+        """):
+            t_uid = str(r['term'])
+            a_uid = str(r['article'])
+            add_node(t_uid, label=str(r.get('termTitle', '')), type='term')
+            if a_uid in seen:
+                edges.append({'source': a_uid, 'target': t_uid, 'type': 'uses'})
+
+        # Article→Article references
+        for r in ontology_manager.query("""
+            PREFIX law: <http://law.ontology.ru/#>
+            SELECT ?from ?to WHERE { ?from law:references ?to . }
+        """):
+            src, tgt = str(r['from']), str(r['to'])
+            if src in seen and tgt in seen:
+                edges.append({'source': src, 'target': tgt, 'type': 'reference'})
+
+        return jsonify({'nodes': nodes, 'edges': edges})
+    except Exception as e:
+        logger.error(f"Ошибка получения графа: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(

@@ -1,10 +1,13 @@
 """Модуль для работы с базой данных истории загрузок документов"""
 import sqlite3
 import json
+import pickle
 from pathlib import Path
 from datetime import datetime
 from typing import List, Dict, Optional
 import logging
+
+import numpy as np
 
 from src.config import PROJECT_ROOT
 
@@ -56,7 +59,25 @@ class DocumentHistoryDB:
         
         conn.commit()
         conn.close()
+
+        self._init_embeddings_table()
         logger.info(f"База данных инициализирована: {self.db_path}")
+
+    def _init_embeddings_table(self):
+        conn = sqlite3.connect(str(self.db_path))
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS article_embeddings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                law_id TEXT NOT NULL,
+                article_number TEXT NOT NULL,
+                article_text TEXT,
+                embedding BLOB NOT NULL,
+                UNIQUE(law_id, article_number)
+            )
+        ''')
+        conn.commit()
+        conn.close()
     
     def add_document(self, filename: str, law_id: str, title: str, 
                     file_path: str, file_size: int = None,
@@ -184,6 +205,64 @@ class DocumentHistoryDB:
             raise
         finally:
             conn.close()
+
+    def save_article_embeddings(self, law_id: str, articles: List[Dict]) -> None:
+        """
+        Сохранить эмбеддинги статей в БД.
+        articles: list of {article_number: str, article_text: str, embedding: np.ndarray}
+        """
+        conn = sqlite3.connect(str(self.db_path))
+        cursor = conn.cursor()
+        try:
+            for article in articles:
+                blob = pickle.dumps(article["embedding"])
+                cursor.execute('''
+                    INSERT OR REPLACE INTO article_embeddings
+                        (law_id, article_number, article_text, embedding)
+                    VALUES (?, ?, ?, ?)
+                ''', (law_id, str(article["article_number"]),
+                      article.get("article_text", ""), blob))
+            conn.commit()
+            logger.info(f"Сохранено {len(articles)} эмбеддингов для закона '{law_id}'")
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"Ошибка сохранения эмбеддингов: {e}")
+            raise
+        finally:
+            conn.close()
+
+    def get_all_article_embeddings(self) -> List[Dict]:
+        """Загрузить все эмбеддинги статей из БД."""
+        conn = sqlite3.connect(str(self.db_path))
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT law_id, article_number, article_text, embedding FROM article_embeddings"
+        )
+        rows = cursor.fetchall()
+        conn.close()
+
+        result = []
+        for row in rows:
+            try:
+                embedding = pickle.loads(row["embedding"])
+                result.append({
+                    "law_id": row["law_id"],
+                    "article_number": row["article_number"],
+                    "article_text": row["article_text"],
+                    "embedding": embedding,
+                })
+            except Exception as e:
+                logger.warning(f"Не удалось десериализовать эмбеддинг: {e}")
+        return result
+
+    def delete_article_embeddings_by_law_id(self, law_id: str) -> None:
+        """Удалить эмбеддинги для указанного закона."""
+        conn = sqlite3.connect(str(self.db_path))
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM article_embeddings WHERE law_id = ?", (law_id,))
+        conn.commit()
+        conn.close()
 
     def get_document_by_law_id(self, law_id: str) -> Optional[Dict]:
         """Получить последний (по uploaded_at) документ по law_id"""

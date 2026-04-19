@@ -14,6 +14,7 @@ nltk>=3.8.1
 spacy>=3.7.0
 pymorphy2>=0.9.1
 pymorphy2-dicts-ru>=2.4.393442.3710985
+sentence-transformers>=3.0.0
 
 # Text processing
 beautifulsoup4>=4.12.2
