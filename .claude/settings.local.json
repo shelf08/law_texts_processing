@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv/Scripts/python -c \"from rdflib import Graph; g = Graph\\(\\); g.parse\\('ontology/legal_ontology.owl', format='xml'\\); print\\('OK, триплетов:', len\\(g\\)\\)\")",
+      "Bash(python *)"
+    ]
+  }
+}
