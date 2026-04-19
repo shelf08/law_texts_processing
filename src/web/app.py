@@ -105,6 +105,39 @@ def _run_upload_task(task_id: str, file_path: Path, original_filename: str) -> N
                         linked_count += 1
         logger.info(f"Связано терминов со статьями: {linked_count}")
 
+        prog(65, 'Извлечение ссылок между статьями...')
+        _ART_REF_RE = re.compile(r'стать[яеёийю]\w*\s+(\d+(?:\.\d+)?)', re.IGNORECASE)
+        _LAW_ABBR_RE = re.compile(
+            r'\b(ГК|УК|ТК|НК|КоАП|КАС|ГПК|АПК|СК|ЖК|ЗК|БК)\b\s*РФ', re.IGNORECASE
+        )
+        ref_count = 0
+        for article in articles:
+            a_uri = article_uris.get(article['number'])
+            if not a_uri or not article.get('text'):
+                continue
+            text = article['text']
+            for m in _ART_REF_RE.finditer(text):
+                ref_num = m.group(1)
+                if ref_num == str(article['number']):
+                    continue
+                context = text[m.end():m.end() + 80]
+                abbr_m = _LAW_ABBR_RE.search(context)
+                if abbr_m:
+                    abbr = abbr_m.group(1).upper()
+                    ref_law_id = ontology_manager.find_law_by_abbr(abbr)
+                    if ref_law_id:
+                        ref_a_str = ontology_manager.get_article_by_number(ref_law_id, ref_num)
+                        if ref_a_str:
+                            from rdflib import URIRef as _URIRef
+                            ontology_manager.add_reference(a_uri, to_article=_URIRef(ref_a_str))
+                            ref_count += 1
+                else:
+                    ref_a_uri = article_uris.get(ref_num)
+                    if ref_a_uri and ref_a_uri != a_uri:
+                        ontology_manager.add_reference(a_uri, to_article=ref_a_uri)
+                        ref_count += 1
+        logger.info(f"Добавлено ссылок между статьями: {ref_count}")
+
         prog(70, 'Сохранение онтологии...')
         ontology_manager.save()
 
@@ -679,6 +712,43 @@ def delete_document(doc_id):
     except Exception as e:
         logger.error(f"Ошибка удаления документа: {e}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/document/<int:doc_id>/article/<article_number>/related', methods=['GET'])
+def get_article_related(doc_id: int, article_number: str):
+    """Исходящие и входящие ссылки для статьи (сценарий 4.4)."""
+    try:
+        doc = document_history_db.get_document_by_id(doc_id)
+        if not doc:
+            return jsonify({'error': 'Документ не найден'}), 404
+        law_id = doc.get('law_id')
+        if not law_id:
+            return jsonify({'error': 'Нет law_id'}), 400
+
+        refs = ontology_manager.get_article_refs(law_id, article_number)
+
+        def enrich(rows: list) -> list:
+            result = []
+            for r in rows:
+                ref_law_uri = r.get('law_uri')
+                ref_law_id = str(ref_law_uri).split('#')[-1] if ref_law_uri else None
+                ref_doc = document_history_db.get_document_by_law_id(ref_law_id) if ref_law_id else None
+                result.append({
+                    'article_number': r.get('num'),
+                    'law_id': ref_law_id,
+                    'law_title': r.get('law_title'),
+                    'document_id': ref_doc.get('id') if ref_doc else None,
+                    'document_title': ref_doc.get('title') if ref_doc else None,
+                })
+            return result
+
+        return jsonify({
+            'outgoing': enrich(refs['outgoing']),
+            'incoming': enrich(refs['incoming']),
+        })
+    except Exception as e:
+        logger.error(f"Ошибка related: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
 
 @app.route('/graph')
 def graph_page():

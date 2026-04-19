@@ -190,6 +190,69 @@ class OntologyManager:
             return results[0].get('article')
         return None
     
+    # Маппинг аббревиатур кодексов → ключевые слова в hasTitle
+    _LAW_ABBR_KEYWORDS: Dict[str, List[str]] = {
+        'ГК':   ['гражданский кодекс'],
+        'УК':   ['уголовный кодекс'],
+        'ТК':   ['трудовой кодекс'],
+        'НК':   ['налоговый кодекс'],
+        'КОАП': ['административных правонарушениях'],
+        'КАС':  ['административного судопроизводства'],
+        'ГПК':  ['гражданский процессуальный'],
+        'АПК':  ['арбитражный процессуальный'],
+        'СК':   ['семейный кодекс'],
+        'ЖК':   ['жилищный кодекс'],
+        'ЗК':   ['земельный кодекс'],
+        'БК':   ['бюджетный кодекс'],
+    }
+
+    def find_law_by_abbr(self, abbr: str) -> Optional[str]:
+        """Найти law_id по аббревиатуре (ГК, УК, ТК …). Возвращает строку law_id или None."""
+        keywords = self._LAW_ABBR_KEYWORDS.get(abbr.upper(), [])
+        if not keywords:
+            return None
+        q = f"""
+        PREFIX law: <{LAW}>
+        SELECT ?uri ?title WHERE {{ ?uri a law:Law . ?uri law:hasTitle ?title . }}
+        """
+        for row in self.query(q):
+            title = (row.get('title') or '').lower()
+            if any(kw in title for kw in keywords):
+                uri = row.get('uri') or ''
+                return str(uri).split('#')[-1] or None
+        return None
+
+    def get_article_refs(self, law_id: str, article_number: str) -> Dict:
+        """Исходящие и входящие ссылки для статьи."""
+        article_uri_str = self.get_article_by_number(law_id, article_number)
+        if not article_uri_str:
+            return {'outgoing': [], 'incoming': []}
+
+        out_q = f"""
+        PREFIX law: <{LAW}>
+        SELECT ?target ?num ?law_uri ?law_title WHERE {{
+            <{article_uri_str}> law:references ?target .
+            ?target law:hasNumber ?num .
+            OPTIONAL {{ ?target law:belongsToLaw ?law_uri . }}
+            OPTIONAL {{ ?law_uri law:hasTitle ?law_title . }}
+        }}
+        LIMIT 50
+        """
+        in_q = f"""
+        PREFIX law: <{LAW}>
+        SELECT ?source ?num ?law_uri ?law_title WHERE {{
+            ?source law:references <{article_uri_str}> .
+            ?source law:hasNumber ?num .
+            OPTIONAL {{ ?source law:belongsToLaw ?law_uri . }}
+            OPTIONAL {{ ?law_uri law:hasTitle ?law_title . }}
+        }}
+        LIMIT 50
+        """
+        return {
+            'outgoing': self.query(out_q),
+            'incoming': self.query(in_q),
+        }
+
     def get_referenced_articles(self, article_uri: URIRef) -> List[URIRef]:
         """Получить все статьи, на которые ссылается данная статья"""
         query = f"""

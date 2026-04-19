@@ -209,6 +209,41 @@
             font-variant-numeric: tabular-nums; flex-shrink: 0;
         }
 
+        /* ── RELATED ────────────────────────────────────────────────────────── */
+        .related-group-label {
+            font-size: 10px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: .07em;
+            color: var(--text-muted); margin-bottom: 6px; margin-top: 10px;
+        }
+        .related-group-label:first-child { margin-top: 0; }
+        .related-item {
+            display: flex; align-items: flex-start; gap: 8px;
+            padding: 7px 9px; border-radius: 7px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-primary);
+            margin-bottom: 5px;
+            transition: border-color .15s, background .15s;
+        }
+        .related-item:last-child { margin-bottom: 0; }
+        .related-item.clickable { cursor: pointer; }
+        .related-item.clickable:hover {
+            border-color: rgba(88,166,255,.4);
+            background: rgba(88,166,255,.04);
+        }
+        .related-icon { color: var(--accent); opacity: .7; flex-shrink: 0; margin-top: 1px; }
+        .related-body { flex: 1; min-width: 0; }
+        .related-num  { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+        .related-law  {
+            font-size: 11px; color: var(--text-muted);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;
+        }
+        .related-ext  {
+            font-size: 10px; padding: 1px 6px; border-radius: 4px;
+            background: rgba(88,166,255,.1); border: 1px solid rgba(88,166,255,.25);
+            color: var(--accent); flex-shrink: 0; align-self: flex-start; margin-top: 2px;
+        }
+        .related-empty { font-size: 12px; color: var(--text-muted); text-align: center; padding: 8px 0; }
+
         /* ── UTILS ───────────────────────────────────────────────────────── */
         .loading { text-align: center; padding: 32px 16px; color: var(--text-secondary); font-size: 13px; }
         .loading::after { content: '...'; animation: dots 1.5s steps(4,end) infinite; }
@@ -335,12 +370,92 @@
                     <div class="loading">Загрузка...</div>
                 </div>
             </div>
+
+            <!-- RELATED ARTICLES (shown only when article is focused) -->
+            <div class="sidebar-section" id="relatedSection" style="display:none">
+                <div class="card-header">
+                    <svg class="card-icon" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                    </svg>
+                    <span class="card-title">Связанные статьи</span>
+                    <span id="relatedCount" style="margin-left:auto;font-size:11px;
+                          background:var(--bg-tertiary);border:1px solid var(--border-color);
+                          border-radius:10px;padding:1px 7px;color:var(--text-muted)">0</span>
+                </div>
+                <div class="card-body" id="relatedContent">
+                    <div class="loading">Загрузка...</div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
         const docId = {{ doc_id }};
+
+        async function loadRelated(articleNumber) {
+            const section = document.getElementById('relatedSection');
+            const content = document.getElementById('relatedContent');
+            const countEl = document.getElementById('relatedCount');
+            section.style.display = 'block';
+            content.innerHTML = '<div class="loading">Загрузка</div>';
+
+            try {
+                const resp = await fetch(`/api/document/${docId}/article/${encodeURIComponent(articleNumber)}/related`);
+                const data = await resp.json();
+                if (data.error) { content.innerHTML = `<div class="related-empty">${data.error}</div>`; return; }
+
+                const outgoing = data.outgoing || [];
+                const incoming = data.incoming || [];
+                const total = outgoing.length + incoming.length;
+                countEl.textContent = total;
+
+                if (total === 0) {
+                    content.innerHTML = '<div class="related-empty">Ссылки не найдены.<br>Перезагрузите документ для обновления онтологии.</div>';
+                    return;
+                }
+
+                function renderItems(items, isCross) {
+                    return items.map(r => {
+                        const num = escapeHtml(r.article_number || '?');
+                        const lawTitle = r.document_title || r.law_title || r.law_id || '';
+                        const isExternal = r.document_id && r.document_id !== docId;
+                        const clickable = r.document_id ? 'clickable' : '';
+                        const onClick = r.document_id
+                            ? `onclick="window.location.href='/document/${r.document_id}?article=${encodeURIComponent(r.article_number || '')}'"` : '';
+                        const extBadge = isExternal ? `<span class="related-ext">↗ внешняя</span>` : '';
+                        return `
+                            <div class="related-item ${clickable}" ${onClick}>
+                                <svg class="related-icon" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                                     stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                    <circle cx="12" cy="12" r="3"/>
+                                    <path d="M3 12h6M15 12h6"/>
+                                </svg>
+                                <div class="related-body">
+                                    <div class="related-num">Статья ${num}</div>
+                                    ${lawTitle ? `<div class="related-law">${escapeHtml(lawTitle)}</div>` : ''}
+                                </div>
+                                ${extBadge}
+                            </div>`;
+                    }).join('');
+                }
+
+                let html = '';
+                if (outgoing.length) {
+                    html += `<div class="related-group-label">Эта статья ссылается на</div>`;
+                    html += renderItems(outgoing);
+                }
+                if (incoming.length) {
+                    html += `<div class="related-group-label">На эту статью ссылаются</div>`;
+                    html += renderItems(incoming);
+                }
+                content.innerHTML = html;
+            } catch(e) {
+                content.innerHTML = `<div class="related-empty">Ошибка: ${e.message}</div>`;
+            }
+        }
 
         async function loadDocument() {
             try {
@@ -432,6 +547,9 @@
                     } catch (e) {
                         // Если не получилось — просто продолжаем показывать файл
                     }
+
+                    // Загружаем связанные статьи
+                    loadRelated(targetArticle);
                 }
 
                 const viewerRoot = document.getElementById('fileViewer') || document.getElementById('documentViewer');
